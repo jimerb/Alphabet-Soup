@@ -182,7 +182,7 @@ export default function Home() {
     : [];
   useEffect(() => {
     mounted.current = true;
-    fetch('/words.txt')
+    fetch(`${basePath}/words.txt`)
       .then((r) => {
         if (!r.ok) throw Error();
         return r.text();
