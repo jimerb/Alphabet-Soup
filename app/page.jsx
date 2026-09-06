@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import SoupSteam from './soup-steam';
 import {
   Settings,
   RotateCw,
@@ -556,6 +557,7 @@ export default function Home() {
           setPath([]);
       }}
     >
+      <SoupSteam />
       <div
         ref={stageRef}
         className="game-stage"
