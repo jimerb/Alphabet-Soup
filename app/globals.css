@@ -2,6 +2,7 @@
 @import 'tw-animate-css';
 @source '../components';
 :root {
+  --asset-url: url('/assets/kitchen.png');
   --background: #102f2b;
   --foreground: #fff1c9;
   --popover: #123a35;
@@ -66,7 +67,7 @@ h1 {
   padding: 0 24px 20px;
   background:
     linear-gradient(#17080020, #160b0033),
-    url('/assets/kitchen.png') center/cover fixed;
+    var(--asset-url) center/cover fixed;
 }
 .game-layout {
   display: grid;

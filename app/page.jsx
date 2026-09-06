@@ -86,6 +86,7 @@ class SoundKitchen {
     this.ctx?.close();
   }
 }
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 function Character({ pose, motion, warning, over }) {
   const [blink, setBlink] = useState('open');
   useEffect(() => {
@@ -111,7 +112,7 @@ function Character({ pose, motion, warning, over }) {
       }
     >
       <img
-        src={`/assets/can-${p}.png`}
+        src={`${basePath}/assets/can-${p}.png`}
         alt={
           over
             ? 'Soup can looking tired'
@@ -125,7 +126,7 @@ function Character({ pose, motion, warning, over }) {
       {blink !== 'open' && (
         <div
           className={`blink-eyes pose-${p}`}
-          style={{ backgroundImage: `url('/assets/eyes-${blink}.png')` }}
+          style={{ backgroundImage: `url('${basePath}/assets/eyes-${blink}.png')` }}
         />
       )}
     </div>
@@ -491,6 +492,7 @@ export default function Home() {
   return (
     <main
       className={`kitchen ${settings.motion ? 'reduced-motion' : ''} ${settings.contrast ? 'high-contrast' : ''}`}
+      style={{ '--asset-url': `url('${basePath}/assets/kitchen.png')` }}
       onKeyDown={(e) => {
         if (e.key === 'Escape' && !settingsOpen && !restartOpen) setPath([]);
       }}
