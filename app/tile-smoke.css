@@ -1,0 +1,94 @@
+/* Steam is painted above the columns, tiles and selection lines. */
+.board-steam {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  overflow: visible;
+}
+.steam-anchor {
+  position: absolute;
+  left: calc(var(--column) * (var(--tile) + 9px) + 6px);
+  top: calc(var(--row) * (var(--cellh) + 3px) + 7px);
+  width: calc(var(--tile) - 4px);
+  height: var(--cellh);
+  transition:
+    top 280ms ease,
+    left 280ms ease;
+}
+.steam-anchor.staggered {
+  margin-top: calc((var(--cellh) + 3px) / 2);
+}
+.tile-smoke {
+  position: absolute;
+  pointer-events: none;
+  left: 0;
+  bottom: 65%;
+  width: 100%;
+  height: 145%;
+  overflow: hidden;
+  mask-image: linear-gradient(transparent, #000 22%, #000 80%, transparent);
+  transition: opacity 280ms ease;
+}
+.tile-smoke i {
+  position: absolute;
+  bottom: -19%;
+  left: 22%;
+  width: 38%;
+  height: 83%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    #d4d8d1 0%,
+    #969f97d9 35%,
+    transparent 73%
+  );
+  filter: blur(2px);
+  opacity: 0;
+  transform-origin: center bottom;
+  animation: tile-smoke-rise 5.8s ease-in-out infinite;
+  animation-delay: var(--smoke-delay);
+}
+.tile-smoke i:nth-child(2) {
+  left: 47%;
+  width: 32%;
+  animation-delay: calc(var(--smoke-delay) - 2.9s);
+}
+.phase-GRAVITY .tile-smoke,
+.phase-FIRE_GRAVITY .tile-smoke,
+.phase-SCRAMBLE .tile-smoke {
+  opacity: 0.55;
+}
+.phase-SCORE_AND_REMOVE .phase-active .tile-smoke {
+  opacity: 0;
+}
+.reduced-motion .board-steam {
+  display: none;
+}
+@media (max-width: 700px) {
+  .steam-anchor {
+    left: calc(var(--column) * (var(--tile) + 9px) + 4px);
+    top: calc(var(--row) * (var(--cellh) + 3px) + 6px);
+    width: var(--tile);
+  }
+}
+@keyframes tile-smoke-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 22%) scale(0.7, 0.7) rotate(-9deg);
+  }
+  18% {
+    opacity: 0.42;
+  }
+  45% {
+    opacity: 0.5;
+    transform: translate(-25%, -16%) scale(1.1, 1) rotate(10deg);
+  }
+  75% {
+    opacity: 0.24;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(42%, -86%) scale(1.5, 1.2) rotate(-8deg);
+  }
+}

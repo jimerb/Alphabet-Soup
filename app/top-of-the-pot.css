@@ -1,0 +1,191 @@
+@font-face {
+  font-family: 'Soup Marker';
+  src: url('../public/fonts/permanent-marker.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+.score-note,
+.pot-dialog {
+  --paper: #f5db75;
+  --ink: #302b23;
+  background: linear-gradient(
+    174deg,
+    #ead06b 0%,
+    #f7e38e 19%,
+    var(--paper) 82%,
+    #e8cb66
+  );
+  color: var(--ink);
+  font-family: 'Soup Marker', 'Segoe Print', cursive;
+  text-shadow: none;
+}
+
+.score-note {
+  position: absolute;
+  left: max(28px, calc((100% - 1170px) / 2 + 10px));
+  bottom: 25px;
+  width: 178px;
+  height: 145px;
+  padding: 14px 9px 9px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 1px 2px 7px 2px;
+  box-shadow:
+    1px 2px 2px #160b0080,
+    2px 4px 5px #160b004d,
+    inset 0 1px #fff1b5;
+  transform-origin: center bottom;
+  transform: perspective(650px) rotateX(53deg) rotateZ(-12deg) skewX(-7deg);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+  z-index: 2;
+}
+.score-note:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.note-heading {
+  font-size: 17px;
+  white-space: nowrap;
+}
+.note-score {
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+.note-score small {
+  font-size: 16px;
+}
+.note-hint {
+  font-size: 13px;
+}
+.score-note:focus-visible {
+  outline: 3px solid #fff5c5;
+  outline-offset: 5px;
+}
+
+.pot-dialog {
+  width: 440px !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: 88dvh;
+  overflow-y: auto;
+  border-radius: 2px 3px 12px 3px !important;
+  padding: 36px 28px 24px !important;
+  gap: 14px !important;
+  box-shadow: 7px 18px 65px #0009;
+}
+.pot-dialog [data-slot='dialog-title'] {
+  font-family: inherit;
+  font-size: clamp(26px, 6vw, 34px);
+  text-align: center;
+  font-weight: 400;
+  line-height: 1.3;
+}
+.pot-dialog [data-slot='dialog-description'] {
+  color: #51472d;
+  text-align: center;
+  font:
+    15px/1.5 Georgia,
+    serif;
+}
+.pot-scores {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pot-scores li {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid #89773c66;
+}
+.pot-rank {
+  font-size: 18px;
+}
+.pot-scores strong {
+  font-size: 27px;
+  font-weight: 400;
+}
+.pot-scores time,
+.pot-date {
+  font:
+    14px/1.5 'Segoe Print',
+    Georgia,
+    serif;
+}
+.pot-scores li:first-child {
+  color: #783520;
+}
+.pot-empty {
+  text-align: center;
+  font-size: 30px;
+  padding: 40px 0;
+}
+.pot-resume {
+  justify-self: center;
+  padding: 8px 16px;
+  border: 2px solid #51472d;
+  border-radius: 4px 7px 3px 6px;
+  font-size: 17px;
+  background: #fff2ad66;
+}
+.pot-resume:hover {
+  background: #fff2ad;
+}
+.pot-dialog button:focus-visible {
+  outline: 3px solid #603725;
+}
+.pot-storage-warning {
+  font:
+    14px/1.4 Georgia,
+    serif;
+}
+@media (min-width: 701px) {
+  .game-stage {
+    padding-bottom: 44px;
+  }
+  .game-stage > .game-message,
+  .game-stage > footer {
+    margin-left: 235px;
+    margin-right: 235px;
+  }
+}
+@media (max-width: 700px) {
+  .score-note {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-self: center;
+    width: 218px;
+    height: 102px;
+    margin: -8px 0 3px;
+    padding: 6px 10px;
+    gap: 1px;
+    transform: perspective(650px) rotateX(45deg) rotateZ(-8deg) skewX(-5deg);
+  }
+  .note-score {
+    font-size: 23px;
+  }
+  .note-hint {
+    font-size: 12px;
+  }
+  .pot-dialog {
+    padding: 34px 20px 20px !important;
+  }
+  .pot-scores li {
+    gap: 6px;
+    grid-template-columns: 27px 1fr auto;
+  }
+  .pot-scores strong {
+    font-size: 24px;
+  }
+}

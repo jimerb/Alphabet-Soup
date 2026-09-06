@@ -21,8 +21,12 @@ Dictionary: bundled `sindresorhus/word-list` list, downloaded 2026-09-05, alphab
 
 Music is a quiet synthesized melody and defaults to muted. Effects default to 55%. Sound only initializes on user interaction. Reduced motion follows the system on first visit; local overrides and best score persist on the same browser. Active runs are not saved on reload.
 
+Top Of The Pot keeps the five highest game scores in localStorage (`alphabet-soup-high-scores`). Each accepted turn updates one entry for that run; restarting or reloading begins a separate run. Dates retain the local calendar day when the score was achieved. Equal scores from different games remain separate, with earlier achievements first. Old best-score counters and previously imported legacy entries are ignored; the leaderboard starts at "None yet" until a real score is earned. The development showcase never records scores. Blocked storage falls back to the current page session and shows a notice in the leaderboard. Clearing browser site data removes saved scores. The marker font is bundled with its license in `public/fonts`.
+
+Hot tiles carry two subtle smoke wisps. A dedicated foreground layer keeps steam above every board column. The emitter moves with the tile, softens during falling and scrambling, disappears with cleared tiles, and is hidden by Reduced motion.
+
 Developer fixture: in local development, open `/?fixture=mockup` for the exact reference letters and reward positions, including damaged diamond and urgent bottom red S. `/?seed=123` reproduces a starting seed. Production ignores the developer fixture. No fixture mutates an already-running board.
 
 ## Verification
 
-17 independent tests pass, including 100 simulated accepted moves, fixed board capacities, adjacency, invalid-action immutability, downward compaction, reward damage, response turns, stacked fire, new-fire delay, scramble, scoring, and bonus progression. Browser checks and final delivery details are recorded in `VERIFICATION.md`.
+28 independent tests pass, including 100 simulated accepted moves, fixed board capacities, adjacency, invalid-action immutability, downward compaction, reward damage, response turns, stacked fire, new-fire delay, scramble, scoring, bonus progression, and six leaderboard persistence/ranking/date tests. Run `pnpm test` for the complete suite. Earlier browser checks and delivery details are recorded in `VERIFICATION.md`.

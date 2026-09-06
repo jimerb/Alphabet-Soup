@@ -1,6 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import SoupSteam from './soup-steam';
+import { ScoreNote, ScoreLeaderboard } from './top-of-the-pot';
+import { HIGH_SCORES_KEY, localScoreDate, rankHighScores, readHighScores } from '@/lib/game/high-scores';
+import './tile-smoke.css';
 import {
   Settings,
   RotateCw,
@@ -155,6 +158,11 @@ export default function Home() {
   );
   const [pose, setPose] = useState(3);
   const [best, setBest] = useState(0);
+  const [highScores, setHighScores] = useState([]);
+  const [scoresOpen, setScoresOpen] = useState(false);
+  const [scoresSaved, setScoresSaved] = useState(true);
+  const scoreNoteRef = useRef(null);
+  const runId = useRef(null);
   const [focusId, setFocusId] = useState('t0');
   const [trapped, setTrapped] = useState(false);
   const locked = useRef(false),
@@ -185,6 +193,7 @@ export default function Home() {
     !settingsOpen &&
     !helpOpen &&
     !restartOpen &&
+    !scoresOpen &&
     !!service;
   const available = path.length
     ? neighbors(state.board, path.at(-1)).map((t) => t.id)
@@ -258,8 +267,13 @@ export default function Home() {
         motion: matchMedia('(prefers-reduced-motion: reduce)').matches,
         ...saved,
       });
-      setBest(Number(localStorage.getItem('alphabet-soup-best')) || 0);
     } catch {}
+    try {
+      const entries = readHighScores(localStorage);
+      setHighScores(entries);
+      setBest(entries[0]?.score || 0);
+      localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(entries));
+    } catch { setScoresSaved(false); }
     setPrefsLoaded(true);
     const params = new URLSearchParams(location.search);
     if (import.meta.env.DEV && params.get('fixture') === 'mockup') {
@@ -288,6 +302,18 @@ export default function Home() {
       } catch {}
   }, [settings, prefsLoaded]);
   useEffect(() => {
+    const refreshScores = (event) => {
+      if (event.key !== HIGH_SCORES_KEY && event.key !== null) return;
+      try {
+        const entries = readHighScores(localStorage);
+        setHighScores(entries);
+        setBest(entries[0]?.score || 0);
+      } catch { setScoresSaved(false); }
+    };
+    window.addEventListener('storage', refreshScores);
+    return () => window.removeEventListener('storage', refreshScores);
+  }, []);
+  useEffect(() => {
     if (!service || !hazards.bottom.length) {
       setTrapped(false);
       return;
@@ -300,7 +326,7 @@ export default function Home() {
     );
   }, [state, service]);
   useEffect(() => {
-    if (settings.musicMute || settingsOpen || helpOpen || restartOpen) return;
+    if (settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen) return;
     let i = 0;
     const melody = [
       261.63, 329.63, 392, 329.63, 293.66, 349.23, 440, 349.23, 246.94, 293.66,
@@ -314,7 +340,23 @@ export default function Home() {
       );
     }, 620);
     return () => clearInterval(t);
-  }, [settings.music, settings.musicMute, settingsOpen, helpOpen, restartOpen]);
+  }, [settings.music, settings.musicMute, settingsOpen, helpOpen, restartOpen, scoresOpen]);
+  function recordScore(score) {
+    // The development showcase is not a real played game.
+    if (import.meta.env.DEV && new URLSearchParams(location.search).get('fixture') === 'mockup') return;
+    if (score <= 0) return;
+    if (!runId.current) runId.current = crypto.randomUUID();
+    let entries = highScores;
+    try { entries = [...entries, ...readHighScores(localStorage)]; } catch {}
+    entries = rankHighScores([...entries, { id: runId.current, score, date: localScoreDate() }]);
+    setHighScores(entries);
+    setBest(entries[0]?.score || 0);
+    try {
+      localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(entries));
+      localStorage.setItem('alphabet-soup-best', String(entries[0]?.score || 0));
+      setScoresSaved(true);
+    } catch { setScoresSaved(false); }
+  }
   function startSound() {
     if (!audio.current) audio.current = new SoundKitchen();
     audio.current.start();
@@ -408,12 +450,7 @@ export default function Home() {
             : 'Freshly stirred. Find your next word.',
     );
     setFocusId(result.state.board[0]?.id);
-    if (result.state.score > best) {
-      setBest(result.state.score);
-      try {
-        localStorage.setItem('alphabet-soup-best', String(result.state.score));
-      } catch {}
-    }
+    recordScore(result.state.score);
     return {
       word: result.word,
       points: result.points,
@@ -423,6 +460,7 @@ export default function Home() {
     };
   }
   function reset() {
+    runId.current = null;
     const s = newGame(Date.now());
     setState(s);
     setDisplay(s.board);
@@ -553,7 +591,7 @@ export default function Home() {
       className={`kitchen ${settings.motion ? 'reduced-motion' : ''} ${settings.contrast ? 'high-contrast' : ''}`}
       style={{ '--asset-url': `url('${basePath}/assets/kitchen.png')` }}
       onKeyDown={(e) => {
-        if (e.key === 'Escape' && !settingsOpen && !helpOpen && !restartOpen)
+        if (e.key === 'Escape' && !settingsOpen && !helpOpen && !restartOpen && !scoresOpen)
           setPath([]);
       }}
     >
@@ -634,7 +672,7 @@ export default function Home() {
               ♨ New Game
             </button>
             <p className="best">
-              Best: {best.toLocaleString()} <span>·</span> Turn{' '}
+              Best: {best ? best.toLocaleString() : 'None yet'} <span>·</span> Turn{' '}
               {state.turnNumber}
             </p>
           </aside>
@@ -713,7 +751,9 @@ export default function Home() {
                           </span>
                         )}
                         {t.isRed && (
-                          <Flame className="fire-symbol" aria-hidden="true" />
+                          <>
+                            <Flame className="fire-symbol" aria-hidden="true" />
+                          </>
                         )}
                         {t.burnDamage > 0 && (
                           <span className="damage-symbol" aria-hidden="true">
@@ -751,6 +791,21 @@ export default function Home() {
                 />
               </svg>
             )}
+            <div className="board-steam" aria-hidden="true">
+              {display.filter((t) => t.isRed).map((t) => (
+                <div
+                  key={t.id}
+                  className={`steam-anchor ${t.column % 2 === 0 ? 'staggered' : ''} ${active.includes(t.id) ? 'phase-active' : ''}`}
+                  style={{
+                    '--column': t.column,
+                    '--row': t.row,
+                    '--smoke-delay': `-${(Number(t.id.replace(/\D/g, '')) % 19) / 3}s`,
+                  }}
+                >
+                  <span className="tile-smoke"><i /><i /></span>
+                </div>
+              ))}
+            </div>
           </section>
           <aside className="right-panel">
             <section className="word-panel brass">
@@ -838,6 +893,13 @@ export default function Home() {
               </p>
             </section>
           </aside>
+          <ScoreNote
+            scores={highScores}
+            open={scoresOpen}
+            noteRef={scoreNoteRef}
+            disabled={busy}
+            onOpen={() => setScoresOpen(true)}
+          />
         </div>
         <div
           className={`game-message ${hazards.bottom.length ? 'warning-message' : ''}`}
@@ -870,6 +932,15 @@ export default function Home() {
           </span>
         </footer>
       </div>
+      <ScoreLeaderboard
+        scores={highScores}
+        open={scoresOpen}
+        saved={scoresSaved}
+        onOpenChange={(open) => {
+          setScoresOpen(open);
+          if (!open) requestAnimationFrame(() => scoreNoteRef.current?.focus());
+        }}
+      />
       <Dialog
         open={settingsOpen}
         onOpenChange={(v) => (v ? setSettingsOpen(true) : closeSettings())}
@@ -1061,8 +1132,8 @@ export default function Home() {
         <AlertDialogContent className="restart-dialog brass">
           <AlertDialogTitle>Start a fresh pot?</AlertDialogTitle>
           <AlertDialogDescription>
-            Your current score of {state.score.toLocaleString()} will be left
-            behind. Your best score stays saved.
+            Start over from zero? Your current score of {state.score.toLocaleString()}
+            {' '}stays in Top Of The Pot if it is one of your five best.
           </AlertDialogDescription>
           <div className="dialog-actions">
             <AlertDialogCancel>Keep playing</AlertDialogCancel>
