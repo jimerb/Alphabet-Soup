@@ -51,6 +51,24 @@ test('selection prevents reuse and nonadjacent jumps; backtrack removes last', (
   assert.deepEqual(extendPath(s.board, [a, b], a), [a]);
   assert.deepEqual(extendPath(s.board, [a], tile(s, 0, 6).id), [a]);
 });
+test('selecting an earlier tile trims the entire suffix and allows a new continuation', () => {
+  const s = newGame(3);
+  const tiles = col(s, 3).slice(0, 7);
+  tiles.forEach((t, i) => { t.letter = 'POIROTY'[i]; });
+  const original = tiles.map((t) => t.id);
+  const boardBefore = structuredClone(s.board);
+  const trimmed = extendPath(s.board, original, original[2]);
+  assert.deepEqual(trimmed, original.slice(0, 3));
+  assert.equal(trimmed.map((id) => s.board.find((t) => t.id === id).letter).join(''), 'POI');
+  assert.deepEqual(extendPath(s.board, original, original[0]), [original[0]]);
+  assert.deepEqual(extendPath(s.board, original, original[6]), original.slice(0, -1));
+  assert.deepEqual(extendPath(s.board, trimmed, original[6]), trimmed);
+  const continued = extendPath(s.board, trimmed, original[3]);
+  assert.deepEqual(continued, original.slice(0, 4));
+  assert.deepEqual(original, tiles.map((t) => t.id));
+  assert.deepEqual(s.board, boardBefore);
+});
+
 test('published scoring examples and stacked rewards', () => {
   const ts = (w) => [...w].map((letter) => ({ letter, tier: 'ordinary' }));
   assert.equal(scoreWord(ts('SEA'), 1), 120);
