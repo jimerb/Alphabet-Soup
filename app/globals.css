@@ -614,9 +614,6 @@ footer {
 .phase-FIRE_DAMAGE .phase-active {
   animation: scorch 0.42s ease-in-out;
 }
-.phase-REFILL .phase-active {
-  animation: drop-in 0.3s ease-out;
-}
 .phase-REWARD_PROMOTION .phase-active,
 .phase-FIRE_CREATION .phase-active {
   animation: reward-flash 0.3s ease-in-out;
@@ -1263,7 +1260,58 @@ footer {
   overflow-y: auto;
 }
 .word-panel .clear-word {
-  height: 20px;
+  justify-content: center;
+  width: calc(100% - 28px);
+  min-height: 44px;
+  padding: 8px 12px;
+  gap: 8px;
+  border: 2px solid #ddb768;
+  border-radius: 8px;
+  background: linear-gradient(#fce5a7, #dcb361);
+  color: #39200e;
+  font: 700 16px/1.2 Arial, sans-serif;
+  box-shadow: inset 0 1px #fff4cd, 0 2px 3px #0006;
+  cursor: pointer;
+}
+.word-panel .clear-word:hover:not(:disabled) {
+  background: #ffedbb;
+}
+.word-panel .clear-word:focus-visible {
+  outline: 3px solid #fff5c9;
+  outline-offset: 3px;
+}
+.word-panel .clear-word:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.score {
+  font-variant-numeric: tabular-nums;
+}
+.score-counting {
+  color: #fff3b8;
+  text-shadow: 0 0 12px #efbc5470;
+}
+/* A fast fall, tiny squash at the surface, then a gentle bob into place. */
+.board .tile.tile-falling {
+  transition: filter 0.15s;
+  transform-origin: center bottom;
+  animation: crouton-fall 520ms backwards;
+  animation-delay: var(--fall-delay);
+}
+@keyframes crouton-fall {
+  0% {
+    transform: translateY(calc(var(--fall-rows) * (var(--cellh) + 3px))) rotate(var(--fall-tilt)) scale(0.94, 1.02);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.55);
+  }
+  64% {
+    transform: translateY(3px) rotate(-1deg) scale(1.045, 0.93);
+    animation-timing-function: ease-out;
+  }
+  82% {
+    transform: translateY(-4px) rotate(1deg) scale(0.99, 1.025);
+    animation-timing-function: ease-in-out;
+  }
+  100% { transform: translateY(0) rotate(0) scale(1); }
 }
 .game-message {
   height: 48px;

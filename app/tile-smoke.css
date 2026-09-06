@@ -19,6 +19,12 @@
 .steam-anchor.staggered {
   margin-top: calc((var(--cellh) + 3px) / 2);
 }
+.steam-anchor.steam-falling {
+  transition: none;
+  animation: crouton-fall 520ms backwards;
+  animation-delay: var(--fall-delay);
+  transform-origin: center bottom;
+}
 .tile-smoke {
   position: absolute;
   pointer-events: none;

@@ -1,6 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import SoupSteam from './soup-steam';
+import AnimatedScore from './animated-score';
+import { SoundKitchen } from '@/lib/game/sound-kitchen';
+import { tileFalls, phaseSound } from '@/lib/game/feedback';
 import { ScoreNote, ScoreLeaderboard } from './top-of-the-pot';
 import { HIGH_SCORES_KEY, localScoreDate, rankHighScores, readHighScores } from '@/lib/game/high-scores';
 import './tile-smoke.css';
@@ -63,33 +66,6 @@ const PHASE_TEXT = {
   SCRAMBLE: 'Stirring the letters…',
   GAME_OVER: 'The fire reached the base.',
 };
-class SoundKitchen {
-  constructor() {
-    this.ctx = null;
-  }
-  start() {
-    if (!this.ctx) this.ctx = new AudioContext();
-    if (this.ctx.state === 'suspended') this.ctx.resume();
-  }
-  note(f, v, d = 0.18, type = 'sine') {
-    if (!this.ctx || !v) return;
-    const c = this.ctx,
-      o = c.createOscillator(),
-      g = c.createGain();
-    o.type = type;
-    o.frequency.value = f;
-    g.gain.setValueAtTime(0, c.currentTime);
-    g.gain.linearRampToValueAtTime(v * 0.15, c.currentTime + 0.015);
-    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + d);
-    o.connect(g);
-    g.connect(c.destination);
-    o.start();
-    o.stop(c.currentTime + d + 0.03);
-  }
-  close() {
-    this.ctx?.close();
-  }
-}
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 function Character({ pose, motion, warning, over }) {
   const [blink, setBlink] = useState('open');
@@ -141,6 +117,8 @@ function Character({ pose, motion, warning, over }) {
 export default function Home() {
   const [state, setState] = useState(() => newGame(502));
   const [display, setDisplay] = useState(state.board);
+  const [falls, setFalls] = useState(() => tileFalls([], state.board));
+  const [scoreTarget, setScoreTarget] = useState(state.score);
   const [path, setPath] = useState([]);
   const [service, setService] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -280,11 +258,15 @@ export default function Home() {
       const s = fixture();
       setState(s);
       setDisplay(s.board);
+      setFalls(tileFalls([], s.board));
+      setScoreTarget(s.score);
       setMessage('Clear this burning tile on your next move.');
     } else if (params.has('seed')) {
       const s = newGame(Number(params.get('seed')) || 502);
       setState(s);
       setDisplay(s.board);
+      setFalls(tileFalls([], s.board));
+      setScoreTarget(s.score);
     }
     return () => {
       mounted.current = false;
@@ -357,25 +339,16 @@ export default function Home() {
       setScoresSaved(true);
     } catch { setScoresSaved(false); }
   }
+  useEffect(() => {
+    audio.current?.setEffects(settings.sound, settings.soundMute);
+  }, [settings.sound, settings.soundMute]);
   function startSound() {
-    if (!audio.current) audio.current = new SoundKitchen();
+    if (!audio.current) audio.current = new SoundKitchen(`${basePath}/assets/LosingHorn.m4a`);
+    audio.current.setEffects(settings.sound, settings.soundMute);
     audio.current.start();
   }
   function chime(kind) {
-    if (settings.soundMute) return;
-    const v = settings.sound / 100;
-    audio.current?.note(
-      kind === 'invalid'
-        ? 140
-        : kind === 'fire'
-          ? 95
-          : kind === 'word'
-            ? 523
-            : 330,
-      v,
-      kind === 'word' ? 0.35 : 0.12,
-      kind === 'fire' ? 'triangle' : 'sine',
-    );
+    audio.current?.play(kind);
   }
   function reactTo(length) {
     clearTimeout(poseTimer.current);
@@ -409,25 +382,31 @@ export default function Home() {
     setPath([]);
     setTrapped(false);
     reactTo(result.actual || 3);
-    chime(type === 'word' ? 'word' : 'tile');
+    if (type !== 'word') chime('tile');
+    setScoreTarget(result.state.score);
+    let previousBoard = display;
     for (const frame of result.frames) {
       if (!mounted.current) return;
+      const nextFalls = tileFalls(previousBoard, frame.board);
+      setFalls(nextFalls);
+      previousBoard = frame.board;
       setDisplay(frame.board);
       setPhase(frame.phase);
       setActive(frame.active);
       setMessage(PHASE_TEXT[frame.phase]);
-      if (frame.phase === 'FIRE_DAMAGE' && frame.active.length) chime('fire');
+      const sound = phaseSound(frame, result);
+      if (sound) chime(sound);
       await new Promise((r) =>
         setTimeout(
           r,
           settings.motion
             ? 35
             : frame.phase === 'SCORE_AND_REMOVE'
-              ? 260
+              ? 300
               : frame.phase === 'FIRE_DAMAGE'
                 ? 420
-                : frame.phase === 'REFILL'
-                  ? 300
+                : Object.keys(nextFalls).length
+                  ? 620
                   : 200,
         ),
       );
@@ -435,6 +414,7 @@ export default function Home() {
     if (!mounted.current) return;
     setState(result.state);
     setDisplay(result.state.board);
+    setFalls({});
     setActive([]);
     setPhase('PLAYER_INPUT');
     setBusy(false);
@@ -460,10 +440,13 @@ export default function Home() {
     };
   }
   function reset() {
+    audio.current?.stopHorn();
     runId.current = null;
     const s = newGame(Date.now());
     setState(s);
     setDisplay(s.board);
+    setFalls(tileFalls([], s.board));
+    setScoreTarget(s.score);
     setPath([]);
     setPhase('PLAYER_INPUT');
     setActive([]);
@@ -635,9 +618,7 @@ export default function Home() {
           <aside className="left-panel">
             <div className="score-panel brass">
               <h2>Score</h2>
-              <strong className="score" aria-label={`Score ${state.score}`}>
-                {state.score.toLocaleString()}
-              </strong>
+              <AnimatedScore score={scoreTarget} reducedMotion={settings.motion} audio={audio} />
               <span className="medallion" aria-hidden="true">
                 ★
               </span>
@@ -719,6 +700,7 @@ export default function Home() {
                   .filter((t) => t.column === c)
                   .map((t) => {
                     const index = path.indexOf(t.id);
+                    const fall = falls[t.id];
                     return (
                       <button
                         key={t.id}
@@ -741,8 +723,11 @@ export default function Home() {
                         }}
                         style={{
                           top: `calc(${t.row} * (var(--cellh) + 3px) + 4px)`,
+                          '--fall-rows': fall?.rows ?? 0,
+                          '--fall-delay': `${fall?.delay ?? 0}ms`,
+                          '--fall-tilt': `${fall?.tilt ?? 0}deg`,
                         }}
-                        className={`tile ${t.tier} ${t.isRed ? 'red' : ''} ${t.isRed && t.row === CAPACITIES[c] - 1 ? 'deadline' : ''} ${index >= 0 ? 'selected' : ''} ${available.includes(t.id) && !path.includes(t.id) ? 'eligible' : ''} ${active.includes(t.id) ? 'phase-active' : ''} ${t.burnDamage ? 'damaged' : ''}`}
+                        className={`tile ${fall ? 'tile-falling' : ''} ${t.tier} ${t.isRed ? 'red' : ''} ${t.isRed && t.row === CAPACITIES[c] - 1 ? 'deadline' : ''} ${index >= 0 ? 'selected' : ''} ${available.includes(t.id) && !path.includes(t.id) ? 'eligible' : ''} ${active.includes(t.id) ? 'phase-active' : ''} ${t.burnDamage ? 'damaged' : ''}`}
                       >
                         <span className="letter">{t.letter}</span>
                         {t.tier !== 'ordinary' && (
@@ -795,10 +780,13 @@ export default function Home() {
               {display.filter((t) => t.isRed).map((t) => (
                 <div
                   key={t.id}
-                  className={`steam-anchor ${t.column % 2 === 0 ? 'staggered' : ''} ${active.includes(t.id) ? 'phase-active' : ''}`}
+                  className={`steam-anchor ${falls[t.id] ? 'steam-falling' : ''} ${t.column % 2 === 0 ? 'staggered' : ''} ${active.includes(t.id) ? 'phase-active' : ''}`}
                   style={{
                     '--column': t.column,
                     '--row': t.row,
+                    '--fall-rows': falls[t.id]?.rows ?? 0,
+                    '--fall-delay': `${falls[t.id]?.delay ?? 0}ms`,
+                    '--fall-tilt': `${falls[t.id]?.tilt ?? 0}deg`,
                     '--smoke-delay': `-${(Number(t.id.replace(/\D/g, '')) % 19) / 3}s`,
                   }}
                 >
@@ -837,11 +825,10 @@ export default function Home() {
               </p>
               <button
                 className="clear-word"
-                style={{ visibility: path.length ? 'visible' : 'hidden' }}
                 onClick={() => setPath([])}
-                disabled={!playable}
+                disabled={!playable || !path.length}
               >
-                <Undo2 size={14} /> Clear
+                <Undo2 size={19} /> Clear word
               </button>
             </section>
             <button
