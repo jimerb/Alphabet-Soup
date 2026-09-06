@@ -36,7 +36,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build for the project Pages URL
         env:
-          NEXT_PUBLIC_BASE_PATH: .
+          NEXT_PUBLIC_BASE_PATH: /Alphabet-Soup
         run: pnpm build
       - name: Make static asset URLs relative
         run: |
@@ -44,7 +44,7 @@ jobs:
           const fs = require('fs');
           const path = require('path');
           const root = 'dist/client';
-          const extensions = new Set(['.html', '.rsc', '.js', '.css']);
+          const extensions = new Set(['.html', '.rsc', '.css']);
           function walk(dir) {
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
               const file = path.join(dir, entry.name);
@@ -61,6 +61,7 @@ jobs:
           }
           walk(root);
           NODE
+          touch dist/client/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload the static site
