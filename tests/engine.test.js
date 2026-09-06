@@ -13,6 +13,9 @@ import {
   resolve,
   settle,
   fixture,
+  BONUS_WORDS,
+  bonusLength,
+  rng,
 } from '../lib/game/engine.js';
 const dict = new WordService(
   readFileSync(new URL('../public/words.txt', import.meta.url), 'utf8').split(
@@ -212,6 +215,70 @@ test('actual length determines promotion; reward bonus affects only points', () 
     r.frames.some((f) => f.phase === 'REWARD_PROMOTION'),
     false,
   );
+});
+
+test('bonus vocabulary is valid and progression grows every two levels to seven', () => {
+  assert.deepEqual(
+    [1, 2, 3, 4, 5, 6, 7, 8, 20].map(bonusLength),
+    [4, 4, 4, 5, 5, 6, 6, 7, 7],
+  );
+  for (const [length, words] of Object.entries(BONUS_WORDS))
+    for (const word of words) {
+      assert.equal(word.length, Number(length));
+      assert.ok(dict.isValidWord(word), word);
+    }
+});
+
+test('new targets are deterministic and never immediately playable across levels and seeds', () => {
+  for (let seed = 0; seed < 30; seed++) {
+    const s = newGame(seed);
+    const reachable = new Set(
+      dict.findReachableWords(s.board, 4, Infinity).map((w) => w.word),
+    );
+    for (const level of [2, 3, 4, 6, 8, 12]) {
+      const word = dict.chooseBonusWord(s.board, 'SOUP', rng(seed), level);
+      assert.ok(word);
+      assert.equal(word.length, bonusLength(level));
+      assert.equal(reachable.has(word), false, `${seed}: ${word}`);
+      assert.notEqual(word, 'SOUP');
+      assert.equal(
+        word,
+        dict.chooseBonusWord(s.board, 'SOUP', rng(seed), level),
+      );
+    }
+  }
+});
+
+test('exact target search respects adjacency and cannot reuse tiles', () => {
+  const s = newGame(4);
+  assert.equal(dict.canFormWord(s.board, 'SOUP'), true);
+  const board = [
+    { id: 'a', letter: 'A', column: 0, row: 0 },
+    { id: 'b', letter: 'B', column: 0, row: 1 },
+    { id: 'c', letter: 'C', column: 0, row: 4 },
+  ];
+  assert.equal(dict.canFormWord(board, 'ABA'), false);
+  assert.equal(dict.canFormWord(board, 'ABC'), false);
+  const soupOnly = new WordService(['SOUP']);
+  assert.equal(soupOnly.chooseBonusWord(s.board, null, rng(1), 2), null);
+});
+
+test('existing bonus survives level changes; completed target uses the new level', () => {
+  const s = newGame(4);
+  s.level = 3;
+  s.score = 29990;
+  s.bonusTarget = 'CAKE';
+  const result = resolve(s, { type: 'word', path: soup(s) }, dict);
+  assert.equal(result.state.level, 4);
+  assert.equal(result.state.bonusTarget, 'CAKE');
+  s.bonusTarget = 'SOUP';
+  const completed = resolve(s, { type: 'word', path: soup(s) }, dict);
+  assert.equal(completed.state.bonusTarget.length, 5);
+  assert.equal(
+    dict.canFormWord(completed.state.board, completed.state.bonusTarget),
+    false,
+  );
+  assert.equal(completed.state.bonusAward, 2000);
 });
 test('100 seeded simulated moves preserve board invariants', () => {
   let count = 0;

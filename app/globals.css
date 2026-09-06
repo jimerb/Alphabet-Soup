@@ -1165,3 +1165,122 @@ footer {
   width: 25%;
   height: 17%;
 }
+/* Fit the complete play surface to both viewport dimensions. The measured stage
+   keeps its natural geometry; scaling never clips the last row or controls. */
+.kitchen {
+  height: 100dvh;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.game-stage {
+  position: relative;
+  flex: none;
+  padding: 8px 12px 16px;
+  transform-origin: center;
+  --cellh: calc(var(--tile) * 0.91);
+}
+.game-stage .game-layout {
+  grid-template-columns: 220px auto 220px;
+  gap: 15px;
+}
+.game-stage h1 {
+  padding: 12px 112px 18px;
+  font-size: 60px;
+}
+.game-stage .gear {
+  top: 18px;
+  right: 18px;
+}
+.game-stage .help-button {
+  right: 71px;
+  font-size: 30px;
+  font-weight: bold;
+}
+.right-panel .word-points {
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 1.2;
+  padding: 0 6px 12px;
+  color: #ffdf83 !important;
+  font-variant-numeric: tabular-nums;
+}
+.bonus-word {
+  font-size: 29px;
+  letter-spacing: 2px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .game-stage .game-layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+  .game-stage h1 {
+    font-size: 34px;
+    padding: 8px 86px 12px 0;
+    text-align: left;
+    letter-spacing: -1.5px;
+  }
+  .game-stage .gear {
+    width: 36px;
+    height: 36px;
+    top: 8px;
+    right: 12px;
+  }
+  .game-stage .help-button {
+    right: 54px;
+    font-size: 27px;
+  }
+  .right-panel .word-points {
+    font-size: 24px;
+    padding-bottom: 8px;
+  }
+  .bonus-word {
+    font-size: 22px;
+    letter-spacing: 1px;
+  }
+}
+/* Selection feedback occupies permanent slots so the play surface stays still. */
+.word-panel .spelling {
+  height: 90px;
+  min-height: 0;
+  display: block;
+  align-content: center;
+  line-height: 1.15;
+  overflow-y: auto;
+}
+.word-panel > p {
+  height: 76px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  overflow-y: auto;
+}
+.word-panel .clear-word {
+  height: 20px;
+}
+.game-message {
+  height: 48px;
+  min-height: 0;
+  overflow-y: auto;
+}
+@media (max-width: 700px) {
+  .word-panel .spelling {
+    height: 64px;
+  }
+  .word-panel > p {
+    height: 66px;
+  }
+  .word-panel .spelling.long-word {
+    font-size: 18px;
+  }
+  .game-message {
+    height: 54px;
+  }
+}

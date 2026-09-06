@@ -126,7 +126,9 @@ function Character({ pose, motion, warning, over }) {
       {blink !== 'open' && (
         <div
           className={`blink-eyes pose-${p}`}
-          style={{ backgroundImage: `url('${basePath}/assets/eyes-${blink}.png')` }}
+          style={{
+            backgroundImage: `url('${basePath}/assets/eyes-${blink}.png')`,
+          }}
         />
       )}
     </div>
@@ -141,6 +143,8 @@ export default function Home() {
   const [settings, setSettings] = useState(DEFAULTS);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [fit, setFit] = useState({ width: 1170, scale: 1, compact: false });
   const [restartOpen, setRestartOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState('PLAYER_INPUT');
@@ -157,6 +161,9 @@ export default function Home() {
     dragging = useRef(false),
     lastTouched = useRef(null),
     boardRef = useRef(null),
+    viewportRef = useRef(null),
+    stageRef = useRef(null),
+    helpRef = useRef(null),
     gearRef = useRef(null),
     audio = useRef(null),
     poseTimer = useRef(null),
@@ -175,11 +182,61 @@ export default function Home() {
     !busy &&
     state.status === 'playing' &&
     !settingsOpen &&
+    !helpOpen &&
     !restartOpen &&
     !!service;
   const available = path.length
     ? neighbors(state.board, path.at(-1)).map((t) => t.id)
     : [];
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const stage = stageRef.current;
+    let lastSize = '';
+    let frame;
+    const resize = () => {
+      const width = viewport.clientWidth;
+      const height = viewport.clientHeight;
+      const size = `${width}:${height}:${window.devicePixelRatio}`;
+      if (size === lastSize) return;
+      lastSize = size;
+      const compact = width <= 700;
+      const stageWidth = compact
+        ? Math.max(320, width)
+        : Math.max(1040, Math.min(1240, width));
+      // Measure at the new viewport's layout width, never the previous width.
+      stage.style.width = `${stageWidth}px`;
+      stage.style.setProperty(
+        '--tile',
+        `${
+          compact
+            ? Math.min(60, (stageWidth - 86) / 7)
+            : Math.min(90, (stageWidth - 570) / 7)
+        }px`,
+      );
+      setFit({
+        width: stageWidth,
+        compact,
+        scale: Math.min(
+          1,
+          width / Math.max(stageWidth, stage.scrollWidth),
+          height / stage.offsetHeight,
+        ),
+      });
+    };
+    const scheduleResize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(resize);
+    };
+    // Gameplay changes the stage's contents, not the available screen space.
+    const observer = new ResizeObserver(scheduleResize);
+    observer.observe(viewport);
+    window.addEventListener('resize', scheduleResize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', scheduleResize);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
   useEffect(() => {
     mounted.current = true;
     fetch(`${basePath}/words.txt`)
@@ -242,7 +299,7 @@ export default function Home() {
     );
   }, [state, service]);
   useEffect(() => {
-    if (settings.musicMute || settingsOpen || restartOpen) return;
+    if (settings.musicMute || settingsOpen || helpOpen || restartOpen) return;
     let i = 0;
     const melody = [
       261.63, 329.63, 392, 329.63, 293.66, 349.23, 440, 349.23, 246.94, 293.66,
@@ -256,7 +313,7 @@ export default function Home() {
       );
     }, 620);
     return () => clearInterval(t);
-  }, [settings.music, settings.musicMute, settingsOpen, restartOpen]);
+  }, [settings.music, settings.musicMute, settingsOpen, helpOpen, restartOpen]);
   function startSound() {
     if (!audio.current) audio.current = new SoundKitchen();
     audio.current.start();
@@ -491,307 +548,332 @@ export default function Home() {
   };
   return (
     <main
+      ref={viewportRef}
       className={`kitchen ${settings.motion ? 'reduced-motion' : ''} ${settings.contrast ? 'high-contrast' : ''}`}
       style={{ '--asset-url': `url('${basePath}/assets/kitchen.png')` }}
       onKeyDown={(e) => {
-        if (e.key === 'Escape' && !settingsOpen && !restartOpen) setPath([]);
+        if (e.key === 'Escape' && !settingsOpen && !helpOpen && !restartOpen)
+          setPath([]);
       }}
     >
-      <button
-        ref={gearRef}
-        className="gear"
-        title="Settings & how to play"
-        aria-label="Settings"
-        disabled={busy}
-        onClick={() => {
-          startSound();
-          setSettingsOpen(true);
+      <div
+        ref={stageRef}
+        className="game-stage"
+        style={{
+          width: fit.width,
+          transform: `scale(${fit.scale})`,
+          '--tile': `${fit.compact ? Math.min(60, (fit.width - 86) / 7) : Math.min(90, (fit.width - 570) / 7)}px`,
         }}
       >
-        <Settings size={24} />
-      </button>
-      <h1>
-        Alphabet S<span className="title-o">o</span>up
-      </h1>
-      <div className="game-layout">
-        <aside className="left-panel">
-          <div className="score-panel brass">
-            <h2>Score</h2>
-            <strong className="score" aria-label={`Score ${state.score}`}>
-              {state.score.toLocaleString()}
-            </strong>
-            <span className="medallion" aria-hidden="true">
-              ★
-            </span>
-            <h2>Level</h2>
-            <span className="level">{state.level}</span>
-            <Character
-              pose={pose}
-              motion={settings.motion}
-              warning={!!hazards.bottom.length}
-              over={state.status === 'game-over'}
-            />
-          </div>
-          <button
-            className="action brass"
-            disabled={!playable || hazards.bottom.length > 0}
-            title={
-              hazards.bottom.length
-                ? 'A bottom fire must be cleared with a word'
-                : 'Shuffle letters. Costs one turn and advances fire.'
-            }
-            onClick={() => commit('scramble')}
-          >
-            <RotateCw size={25} /> Scramble
-          </button>
-          <button
-            className="action teal brass"
-            disabled={busy}
-            onClick={() =>
-              state.status === 'game-over' ? reset() : setRestartOpen(true)
-            }
-          >
-            ♨ New Game
-          </button>
-          <p className="best">
-            Best: {best.toLocaleString()} <span>·</span> Turn {state.turnNumber}
-          </p>
-        </aside>
-        <section
-          ref={boardRef}
-          className={`board phase-${phase}`}
-          aria-label="Letter board"
-          aria-busy={busy}
-          onPointerMove={(e) => {
-            if (!dragging.current || !playable) return;
-            const el = document
-              .elementFromPoint(e.clientX, e.clientY)
-              ?.closest('[data-tile]');
-            const id = el?.getAttribute('data-tile');
-            if (id && id !== lastTouched.current) {
-              select(id);
-              lastTouched.current = id;
-            }
-          }}
-          onPointerUp={() => {
-            dragging.current = false;
-            lastTouched.current = null;
-          }}
-          onPointerCancel={() => {
-            dragging.current = false;
-            lastTouched.current = null;
-          }}
-          onPointerLeave={(e) => {
-            if (e.pointerType === 'mouse') {
-              dragging.current = false;
-              lastTouched.current = null;
-            }
+        <button
+          ref={helpRef}
+          className="gear help-button"
+          title="How to play & scoring"
+          aria-label="How to play and scoring"
+          disabled={busy}
+          onClick={() => setHelpOpen(true)}
+        >
+          ?
+        </button>
+        <button
+          ref={gearRef}
+          className="gear"
+          title="Settings"
+          aria-label="Settings"
+          disabled={busy}
+          onClick={() => {
+            startSound();
+            setSettingsOpen(true);
           }}
         >
-          {Array.from({ length: 7 }, (_, c) => (
-            <div
-              key={c}
-              className={`column brass col-${c}`}
-              style={{
-                height: `calc(${CAPACITIES[c]} * (var(--cellh) + 3px) + 5px)`,
-              }}
-            >
-              {display
-                .filter((t) => t.column === c)
-                .map((t) => {
-                  const index = path.indexOf(t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      data-tile={t.id}
-                      aria-label={`${t.letter}, column ${c + 1}, row ${t.row + 1}${t.isRed ? ', burning' : ''}${t.tier !== 'ordinary' ? `, ${t.tier} reward plus ${TIERS[t.tier].bonus}` : ''}${t.burnDamage ? `, ${t.burnDamage} fire damage` : ''}`}
-                      aria-pressed={index >= 0}
-                      tabIndex={focusId === t.id ? 0 : -1}
-                      disabled={!playable}
-                      onKeyDown={(e) => keyboard(e, t)}
-                      onClick={(e) => {
-                        if (e.detail === 0) select(t.id);
-                      }}
-                      onPointerDown={(e) => {
-                        if (!playable || e.button !== 0) return;
-                        e.preventDefault();
-                        e.currentTarget.focus();
-                        dragging.current = true;
-                        lastTouched.current = t.id;
-                        select(t.id);
-                      }}
-                      style={{
-                        top: `calc(${t.row} * (var(--cellh) + 3px) + 4px)`,
-                      }}
-                      className={`tile ${t.tier} ${t.isRed ? 'red' : ''} ${t.isRed && t.row === CAPACITIES[c] - 1 ? 'deadline' : ''} ${index >= 0 ? 'selected' : ''} ${available.includes(t.id) && !path.includes(t.id) ? 'eligible' : ''} ${active.includes(t.id) ? 'phase-active' : ''} ${t.burnDamage ? 'damaged' : ''}`}
-                    >
-                      <span className="letter">{t.letter}</span>
-                      {t.tier !== 'ordinary' && (
-                        <span className="tier-symbol" aria-hidden="true">
-                          {TIERS[t.tier].symbol}
-                        </span>
-                      )}
-                      {t.isRed && (
-                        <Flame className="fire-symbol" aria-hidden="true" />
-                      )}
-                      {t.burnDamage > 0 && (
-                        <span className="damage-symbol" aria-hidden="true">
-                          {'╱'.repeat(t.burnDamage)}
-                        </span>
-                      )}
-                      {index >= 0 && (
-                        <span className="path-number" aria-hidden="true">
-                          {index + 1}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-            </div>
-          ))}
-          {path.length > 1 && (
-            <svg
-              className="path-lines"
-              viewBox="0 0 700 800"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <polyline
-                points={selected
-                  .map((t) => `${t.column * 100 + 50},${(yOf(t) + 0.5) * 100}`)
-                  .join(' ')}
-                fill="none"
-                stroke="#ffe9a3"
-                strokeWidth="5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          <Settings size={24} />
+        </button>
+        <h1>
+          Alphabet S<span className="title-o">o</span>up
+        </h1>
+        <div className="game-layout">
+          <aside className="left-panel">
+            <div className="score-panel brass">
+              <h2>Score</h2>
+              <strong className="score" aria-label={`Score ${state.score}`}>
+                {state.score.toLocaleString()}
+              </strong>
+              <span className="medallion" aria-hidden="true">
+                ★
+              </span>
+              <h2>Level</h2>
+              <span className="level">{state.level}</span>
+              <Character
+                pose={pose}
+                motion={settings.motion}
+                warning={!!hazards.bottom.length}
+                over={state.status === 'game-over'}
               />
-            </svg>
-          )}
-        </section>
-        <aside className="right-panel">
-          <section className="word-panel brass">
-            <h2 className="ribbon">Current Word</h2>
-            <div
-              className={`spelling ${word.length > 8 ? 'long-word' : ''}`}
-              aria-live="polite"
-            >
-              {word || '—'}
             </div>
-            <p className={valid ? 'valid-note' : ''}>
-              {!service ? (
-                loadError ? (
-                  'Dictionary unavailable. Reload to retry.'
-                ) : (
-                  'Warming up the dictionary…'
-                )
-              ) : valid ? (
-                <>
-                  <Check size={15} /> {preview.toLocaleString()} points
-                </>
-              ) : word.length > 0 && word.length < 3 ? (
-                'Keep going · 3 letters minimum'
-              ) : word ? (
-                'Not in the dictionary'
-              ) : (
-                'Connect 3 or more letters'
-              )}
+            <button
+              className="action brass"
+              disabled={!playable || hazards.bottom.length > 0}
+              title={
+                hazards.bottom.length
+                  ? 'A bottom fire must be cleared with a word'
+                  : 'Shuffle letters. Costs one turn and advances fire.'
+              }
+              onClick={() => commit('scramble')}
+            >
+              <RotateCw size={25} /> Scramble
+            </button>
+            <button
+              className="action teal brass"
+              disabled={busy}
+              onClick={() =>
+                state.status === 'game-over' ? reset() : setRestartOpen(true)
+              }
+            >
+              ♨ New Game
+            </button>
+            <p className="best">
+              Best: {best.toLocaleString()} <span>·</span> Turn{' '}
+              {state.turnNumber}
             </p>
-            {path.length > 0 && (
+          </aside>
+          <section
+            ref={boardRef}
+            className={`board phase-${phase}`}
+            aria-label="Letter board"
+            aria-busy={busy}
+            onPointerMove={(e) => {
+              if (!dragging.current || !playable) return;
+              const el = document
+                .elementFromPoint(e.clientX, e.clientY)
+                ?.closest('[data-tile]');
+              const id = el?.getAttribute('data-tile');
+              if (id && id !== lastTouched.current) {
+                select(id);
+                lastTouched.current = id;
+              }
+            }}
+            onPointerUp={() => {
+              dragging.current = false;
+              lastTouched.current = null;
+            }}
+            onPointerCancel={() => {
+              dragging.current = false;
+              lastTouched.current = null;
+            }}
+            onPointerLeave={(e) => {
+              if (e.pointerType === 'mouse') {
+                dragging.current = false;
+                lastTouched.current = null;
+              }
+            }}
+          >
+            {Array.from({ length: 7 }, (_, c) => (
+              <div
+                key={c}
+                className={`column brass col-${c}`}
+                style={{
+                  height: `calc(${CAPACITIES[c]} * (var(--cellh) + 3px) + 5px)`,
+                }}
+              >
+                {display
+                  .filter((t) => t.column === c)
+                  .map((t) => {
+                    const index = path.indexOf(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        data-tile={t.id}
+                        aria-label={`${t.letter}, column ${c + 1}, row ${t.row + 1}${t.isRed ? ', burning' : ''}${t.tier !== 'ordinary' ? `, ${t.tier} reward plus ${TIERS[t.tier].bonus}` : ''}${t.burnDamage ? `, ${t.burnDamage} fire damage` : ''}`}
+                        aria-pressed={index >= 0}
+                        tabIndex={focusId === t.id ? 0 : -1}
+                        disabled={!playable}
+                        onKeyDown={(e) => keyboard(e, t)}
+                        onClick={(e) => {
+                          if (e.detail === 0) select(t.id);
+                        }}
+                        onPointerDown={(e) => {
+                          if (!playable || e.button !== 0) return;
+                          e.preventDefault();
+                          e.currentTarget.focus();
+                          dragging.current = true;
+                          lastTouched.current = t.id;
+                          select(t.id);
+                        }}
+                        style={{
+                          top: `calc(${t.row} * (var(--cellh) + 3px) + 4px)`,
+                        }}
+                        className={`tile ${t.tier} ${t.isRed ? 'red' : ''} ${t.isRed && t.row === CAPACITIES[c] - 1 ? 'deadline' : ''} ${index >= 0 ? 'selected' : ''} ${available.includes(t.id) && !path.includes(t.id) ? 'eligible' : ''} ${active.includes(t.id) ? 'phase-active' : ''} ${t.burnDamage ? 'damaged' : ''}`}
+                      >
+                        <span className="letter">{t.letter}</span>
+                        {t.tier !== 'ordinary' && (
+                          <span className="tier-symbol" aria-hidden="true">
+                            {TIERS[t.tier].symbol}
+                          </span>
+                        )}
+                        {t.isRed && (
+                          <Flame className="fire-symbol" aria-hidden="true" />
+                        )}
+                        {t.burnDamage > 0 && (
+                          <span className="damage-symbol" aria-hidden="true">
+                            {'╱'.repeat(t.burnDamage)}
+                          </span>
+                        )}
+                        {index >= 0 && (
+                          <span className="path-number" aria-hidden="true">
+                            {index + 1}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+              </div>
+            ))}
+            {path.length > 1 && (
+              <svg
+                className="path-lines"
+                viewBox="0 0 700 800"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <polyline
+                  points={selected
+                    .map(
+                      (t) => `${t.column * 100 + 50},${(yOf(t) + 0.5) * 100}`,
+                    )
+                    .join(' ')}
+                  fill="none"
+                  stroke="#ffe9a3"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </section>
+          <aside className="right-panel">
+            <section className="word-panel brass">
+              <h2 className="ribbon">Current Word</h2>
+              <div
+                className={`spelling ${word.length > 8 ? 'long-word' : ''}`}
+                aria-live="polite"
+              >
+                {word || '—'}
+              </div>
+              <p className={valid ? 'valid-note word-points' : ''}>
+                {!service ? (
+                  loadError ? (
+                    'Dictionary unavailable. Reload to retry.'
+                  ) : (
+                    'Warming up the dictionary…'
+                  )
+                ) : valid ? (
+                  <>
+                    <Check size={20} /> {preview.toLocaleString()} points
+                  </>
+                ) : word.length > 0 && word.length < 3 ? (
+                  'Keep going · 3 letters minimum'
+                ) : word ? (
+                  'Not in the dictionary'
+                ) : (
+                  'Connect 3 or more letters'
+                )}
+              </p>
               <button
                 className="clear-word"
+                style={{ visibility: path.length ? 'visible' : 'hidden' }}
                 onClick={() => setPath([])}
                 disabled={!playable}
               >
                 <Undo2 size={14} /> Clear
               </button>
-            )}
-          </section>
-          <button
-            className="action brass submit"
-            disabled={!playable || !path.length}
-            onClick={() => commit('word')}
-          >
-            Submit <ChevronRight size={22} />
-          </button>
-          <section className="bonus-panel brass">
-            <h2 className="ribbon">Bonus Word</h2>
-            <div className="bonus-word">{state.bonusTarget || '♨'}</div>
-            <p>
-              {state.bonusTarget
-                ? `+${state.bonusAward.toLocaleString()} bonus points`
-                : state.level < 2
-                  ? 'Unlocks at Level 2'
-                  : 'Looking for a reachable word…'}
-            </p>
-          </section>
-          <section
-            className={`danger-panel brass ${hazards.bottom.length ? 'urgent' : ''}`}
-          >
-            <h2 className="ribbon">Fire Danger</h2>
-            <div
-              className="meter"
-              role="meter"
-              aria-label="Fire danger"
-              aria-valuenow={Math.round(hazards.amount * 100)}
-              aria-valuemin={0}
-              aria-valuemax={100}
+            </section>
+            <button
+              className="action brass submit"
+              disabled={!playable || !path.length}
+              onClick={() => commit('word')}
             >
-              {Array.from({ length: 10 }, (_, i) => (
-                <i
-                  key={i}
-                  className={i < Math.ceil(hazards.amount * 10) ? 'lit' : ''}
-                  style={{ '--segment': i }}
-                />
-              ))}
-            </div>
-            <p>
-              {state.status === 'game-over'
-                ? 'The fire reached the base.'
-                : hazards.bottom.length
-                  ? 'Clear this burning tile on your next move.'
-                  : hazards.count
-                    ? `${hazards.count} burning ${hazards.count === 1 ? 'tile' : 'tiles'} · Watch the bottom`
-                    : 'No burning tiles'}
-            </p>
-          </section>
-        </aside>
-      </div>
-      <div
-        className={`game-message ${hazards.bottom.length ? 'warning-message' : ''}`}
-        role="status"
-        aria-live="polite"
-      >
-        {trapped && state.status === 'playing'
-          ? 'No valid word can rescue every bottom fire. This board is trapped — start a New Game.'
-          : message}
-      </div>
-      {state.status === 'game-over' && (
-        <div className="game-over brass">
-          <strong>Soup’s over!</strong>
-          <span>Final score: {state.score.toLocaleString()}</span>
-          <button className="action teal brass" onClick={reset}>
-            Cook up a new game
-          </button>
+              Submit <ChevronRight size={22} />
+            </button>
+            <section className="bonus-panel brass">
+              <h2 className="ribbon">Bonus Word</h2>
+              <div className="bonus-word">{state.bonusTarget || '♨'}</div>
+              <p>
+                {state.bonusTarget
+                  ? `+${state.bonusAward.toLocaleString()} bonus points`
+                  : state.level < 2
+                    ? 'Unlocks at Level 2'
+                    : 'A new challenge is coming…'}
+              </p>
+            </section>
+            <section
+              className={`danger-panel brass ${hazards.bottom.length ? 'urgent' : ''}`}
+            >
+              <h2 className="ribbon">Fire Danger</h2>
+              <div
+                className="meter"
+                role="meter"
+                aria-label="Fire danger"
+                aria-valuenow={Math.round(hazards.amount * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                {Array.from({ length: 10 }, (_, i) => (
+                  <i
+                    key={i}
+                    className={i < Math.ceil(hazards.amount * 10) ? 'lit' : ''}
+                    style={{ '--segment': i }}
+                  />
+                ))}
+              </div>
+              <p>
+                {state.status === 'game-over'
+                  ? 'The fire reached the base.'
+                  : hazards.bottom.length
+                    ? 'Clear this burning tile on your next move.'
+                    : hazards.count
+                      ? `${hazards.count} burning ${hazards.count === 1 ? 'tile' : 'tiles'} · Watch the bottom`
+                      : 'No burning tiles'}
+              </p>
+            </section>
+          </aside>
         </div>
-      )}
-      <footer>
-        {state.status === 'game-over'
-          ? 'Start a fresh pot when you’re ready.'
-          : busy
-            ? 'Let the letters settle…'
-            : 'Take your time. Fire only moves when you do.'}
-        <span className="keyboard-tip">
-          {' '}
-          Arrows to navigate · Space to select · Enter to submit · Esc to clear
-        </span>
-      </footer>
+        <div
+          className={`game-message ${hazards.bottom.length ? 'warning-message' : ''}`}
+          role="status"
+          aria-live="polite"
+        >
+          {trapped && state.status === 'playing'
+            ? 'No valid word can rescue every bottom fire. This board is trapped — start a New Game.'
+            : message}
+        </div>
+        {state.status === 'game-over' && (
+          <div className="game-over brass">
+            <strong>Soup’s over!</strong>
+            <span>Final score: {state.score.toLocaleString()}</span>
+            <button className="action teal brass" onClick={reset}>
+              Cook up a new game
+            </button>
+          </div>
+        )}
+        <footer>
+          {state.status === 'game-over'
+            ? 'Start a fresh pot when you’re ready.'
+            : busy
+              ? 'Let the letters settle…'
+              : 'Take your time. Fire only moves when you do.'}
+          <span className="keyboard-tip">
+            {' '}
+            Arrows to navigate · Space to select · Enter to submit · Esc to
+            clear
+          </span>
+        </footer>
+      </div>
       <Dialog
         open={settingsOpen}
         onOpenChange={(v) => (v ? setSettingsOpen(true) : closeSettings())}
       >
         <DialogContent className="settings-dialog brass">
-          <DialogTitle>Settings & How to Play</DialogTitle>
+          <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
             Your game is paused. Thinking time never costs a turn.
           </DialogDescription>
@@ -865,6 +947,23 @@ export default function Home() {
               }
             />
           </label>
+          <button className="action teal brass" onClick={closeSettings}>
+            Resume game
+          </button>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={helpOpen}
+        onOpenChange={(open) => {
+          setHelpOpen(open);
+          if (!open) requestAnimationFrame(() => helpRef.current?.focus());
+        }}
+      >
+        <DialogContent className="settings-dialog brass">
+          <DialogTitle>How to Play & Scoring</DialogTitle>
+          <DialogDescription>
+            Your game is paused. Take your time learning the recipe.
+          </DialogDescription>
           <section className="how-to">
             <h3>How to make a delicious word</h3>
             <ol>
@@ -899,14 +998,34 @@ export default function Home() {
             </div>
             <p>
               <strong>Longer words cool the soup.</strong> Five, six, seven, and
-              eight-letter words earn Green, Gold, Sapphire, and Diamond tiles.
-              They add +2, +4, +7, and +10 effective letters to scoring and
-              resist 2, 3, 4, and 5 fire hits.
+              eight-or-more-letter words earn Green, Gold, Sapphire, and Diamond
+              tiles. They add +2, +4, +7, and +10 effective letters to scoring
+              and resist 2, 3, 4, and 5 fire hits.
             </p>
             <p>
               <strong>Score:</strong> 10 × effective length × (letter-value sum
               + level). Every 10,000 points advances a level. Exact bonus words
-              unlock at Level 2.
+              unlock at Level 2. Each new target has 4 letters at levels 2–3, 5
+              at levels 4–5, 6 at levels 6–7, and 7 from level 8 onward. Your
+              current target stays until you complete it.
+            </p>
+            <p>
+              <strong>Build toward the bonus.</strong> A new target cannot be
+              connected on the board when it is assigned. Clear other words to
+              drop letters into place and bring in fresh tiles. Completing the
+              exact target adds the displayed bonus on top of your word score.
+              Bonuses start at 1,000 points and grow by 1,000 per completion, up
+              to 10,000.
+            </p>
+            <p>
+              <strong>Letter values:</strong> A E I O S = 1; L N R T U = 2; D G
+              = 3; B C M P = 4; F H V = 5; W Y = 6; K Q = 7; J X = 8; Z = 10.
+              Reward bonuses stack in the effective length.
+            </p>
+            <p>
+              <strong>Controls:</strong> Click or drag to select. Click the last
+              tile to undo it, or Clear to start over. Use arrow keys to
+              navigate, Space to select, Enter to submit, and Escape to clear.
             </p>
             <p>
               <strong>Scramble costs a turn.</strong> Letters shuffle, rewards
@@ -925,7 +1044,13 @@ export default function Home() {
               </a>
             </p>
           </section>
-          <button className="action teal brass" onClick={closeSettings}>
+          <button
+            className="action teal brass"
+            onClick={() => {
+              setHelpOpen(false);
+              requestAnimationFrame(() => helpRef.current?.focus());
+            }}
+          >
             Resume game
           </button>
         </DialogContent>
