@@ -1288,8 +1288,8 @@ footer {
   font-variant-numeric: tabular-nums;
 }
 .score-counting {
-  color: #fff3b8;
-  text-shadow: 0 0 12px #efbc5470;
+  color: #421605;
+  text-shadow: none;
 }
 /* A fast fall, tiny squash at the surface, then a gentle bob into place. */
 .board .tile.tile-falling {
