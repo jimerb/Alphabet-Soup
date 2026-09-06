@@ -38,33 +38,8 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: /Alphabet-Soup
         run: pnpm build
-      - name: Make static asset URLs relative
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const root = 'dist/client';
-          // Vinext's client runtime also embeds absolute /_next references.
-          // Rewrite its JavaScript chunks with the HTML and RSC payloads so
-          // project Pages deployments resolve assets below /Alphabet-Soup/.
-          const extensions = new Set(['.html', '.rsc', '.css', '.js']);
-          function walk(dir) {
-            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-              const file = path.join(dir, entry.name);
-              if (entry.isDirectory()) walk(file);
-              else if (extensions.has(path.extname(file))) {
-                const source = fs.readFileSync(file, 'utf8');
-                const updated = source
-                  .replaceAll('"/_next/', '"./_next/')
-                  .replaceAll("'/_next/", "'./_next/")
-                  .replaceAll('url(/_next/', 'url(./_next/');
-                if (updated !== source) fs.writeFileSync(file, updated);
-              }
-            }
-          }
-          walk(root);
-          NODE
-          touch dist/client/.nojekyll
+      - name: Preserve framework files for Pages
+        run: touch dist/client/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload the static site
