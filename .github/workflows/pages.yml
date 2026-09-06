@@ -44,7 +44,10 @@ jobs:
           const fs = require('fs');
           const path = require('path');
           const root = 'dist/client';
-          const extensions = new Set(['.html', '.rsc', '.css']);
+          // Vinext's client runtime also embeds absolute /_next references.
+          // Rewrite its JavaScript chunks with the HTML and RSC payloads so
+          // project Pages deployments resolve assets below /Alphabet-Soup/.
+          const extensions = new Set(['.html', '.rsc', '.css', '.js']);
           function walk(dir) {
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
               const file = path.join(dir, entry.name);
