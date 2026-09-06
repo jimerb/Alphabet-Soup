@@ -36,8 +36,31 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build for the project Pages URL
         env:
-          NEXT_PUBLIC_BASE_PATH: /Alphabet-Soup
+          NEXT_PUBLIC_BASE_PATH: .
         run: pnpm build
+      - name: Make static asset URLs relative
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const root = 'dist/client';
+          const extensions = new Set(['.html', '.rsc', '.js', '.css']);
+          function walk(dir) {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const file = path.join(dir, entry.name);
+              if (entry.isDirectory()) walk(file);
+              else if (extensions.has(path.extname(file))) {
+                const source = fs.readFileSync(file, 'utf8');
+                const updated = source
+                  .replaceAll('"/_next/', '"./_next/')
+                  .replaceAll("'/_next/", "'./_next/")
+                  .replaceAll('url(/_next/', 'url(./_next/');
+                if (updated !== source) fs.writeFileSync(file, updated);
+              }
+            }
+          }
+          walk(root);
+          NODE
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload the static site
