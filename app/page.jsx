@@ -48,9 +48,9 @@ import {
 } from '@/lib/game/engine';
 const DEFAULTS = {
   sound: 55,
-  music: 25,
+  music: 10,
   soundMute: false,
-  musicMute: true,
+  musicMute: false,
   motion: false,
   contrast: false,
 };
@@ -312,20 +312,10 @@ export default function Home() {
     );
   }, [state, service]);
   useEffect(() => {
-    if (settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen) return;
-    let i = 0;
-    const melody = [
-      261.63, 329.63, 392, 329.63, 293.66, 349.23, 440, 349.23, 246.94, 293.66,
-      392, 293.66,
-    ];
-    const t = setInterval(() => {
-      audio.current?.note(
-        melody[i++ % melody.length],
-        settings.music / 100,
-        0.8,
-      );
-    }, 620);
-    return () => clearInterval(t);
+    audio.current?.setMusic(
+      settings.music,
+      settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen,
+    );
   }, [settings.music, settings.musicMute, settingsOpen, helpOpen, restartOpen, scoresOpen]);
   function recordScore(score) {
     // The development showcase is not a real played game.
@@ -350,9 +340,14 @@ export default function Home() {
     if (!audio.current) audio.current = new SoundKitchen(
       `${basePath}/assets/LosingHorn.m4a`,
       `${basePath}/assets/mmm-mm-good.wav`,
+      `${basePath}/assets/SoupMedleyLoop.m4a`,
     );
     audio.current.setEffects(settings.sound, settings.soundMute);
     audio.current.start();
+    audio.current.setMusic(
+      settings.music,
+      settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen,
+    );
   }
   function chime(kind) {
     audio.current?.play(kind);
