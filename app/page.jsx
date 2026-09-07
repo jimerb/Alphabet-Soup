@@ -261,8 +261,12 @@ export default function Home() {
       setFalls(tileFalls([], s.board));
       setScoreTarget(s.score);
       setMessage('Clear this burning tile on your next move.');
-    } else if (params.has('seed')) {
-      const s = newGame(Number(params.get('seed')) || 502);
+    } else {
+      // Randomize in the browser after hydration; explicit seeds remain replayable.
+      const seed = params.has('seed')
+        ? Number(params.get('seed')) || 502
+        : crypto.getRandomValues(new Uint32Array(1))[0];
+      const s = newGame(seed);
       setState(s);
       setDisplay(s.board);
       setFalls(tileFalls([], s.board));
@@ -343,7 +347,10 @@ export default function Home() {
     audio.current?.setEffects(settings.sound, settings.soundMute);
   }, [settings.sound, settings.soundMute]);
   function startSound() {
-    if (!audio.current) audio.current = new SoundKitchen(`${basePath}/assets/LosingHorn.m4a`);
+    if (!audio.current) audio.current = new SoundKitchen(
+      `${basePath}/assets/LosingHorn.m4a`,
+      `${basePath}/assets/mmm-mm-good.wav`,
+    );
     audio.current.setEffects(settings.sound, settings.soundMute);
     audio.current.start();
   }
@@ -394,8 +401,13 @@ export default function Home() {
       setPhase(frame.phase);
       setActive(frame.active);
       setMessage(PHASE_TEXT[frame.phase]);
-      const sound = phaseSound(frame, result);
+      const sound = phaseSound(frame, result, state.level);
       if (sound) chime(sound);
+      if (frame.phase === 'REFILL') {
+        frame.active.forEach((id, index) => audio.current?.plop(
+          settings.motion ? index * 0.012 : (nextFalls[id]?.delay ?? 0) / 1000,
+        ));
+      }
       await new Promise((r) =>
         setTimeout(
           r,
@@ -441,11 +453,13 @@ export default function Home() {
   }
   function reset() {
     audio.current?.stopHorn();
+    audio.current?.stopLevelUp();
     runId.current = null;
     const s = newGame(Date.now());
     setState(s);
     setDisplay(s.board);
     setFalls(tileFalls([], s.board));
+    s.board.forEach((tile, index) => audio.current?.plop(index * 0.012));
     setScoreTarget(s.score);
     setPath([]);
     setPhase('PLAYER_INPUT');

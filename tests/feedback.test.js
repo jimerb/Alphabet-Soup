@@ -76,6 +76,41 @@ function mockAudio(t) {
 globalThis.AudioContext = function () {};
 globalThis.Audio = function () {};
 
+test('level-up recording cues once at the level update, independently of a bonus prize', () => {
+  const state = newGame(42);
+  state.score = 9900;
+  state.bonusTarget = 'SOUP';
+  const result = resolve(state, { type: 'word', path: soupPath(state) }, dictionary);
+  assert.deepEqual(result.frames.map((f) => phaseSound(f, result, state.level)).filter(Boolean), ['bonus', 'level-up']);
+  const refill = result.frames.find((f) => f.phase === 'REFILL');
+  assert.equal(refill.active.length, 4);
+  assert.ok(refill.active.every((id) => !state.board.some((t) => t.id === id)));
+});
+
+test('new tile plops and level recording obey volume, mute, and cleanup', (t) => {
+  const started = mockAudio(t);
+  const kitchen = new SoundKitchen('/horn.m4a', '/assets/mmm-mm-good.wav');
+  kitchen.setEffects(55, false);
+  kitchen.start();
+  kitchen.plop(0.03);
+  kitchen.play('level-up');
+  assert.equal(started.length, 1);
+  assert.equal(kitchen.levelUp.src, '/assets/mmm-mm-good.wav');
+  assert.equal(kitchen.levelUp.plays, 1);
+  assert.equal(kitchen.levelUp.volume, 0.55);
+  for (const [volume, mute] of [[55, true], [0, false]]) {
+    kitchen.setEffects(volume, mute);
+    kitchen.plop();
+    kitchen.play('level-up');
+    assert.equal(started.length, 1);
+    assert.equal(kitchen.levelUp.plays, 1);
+    assert.equal(kitchen.levelUp.currentTime, 0);
+  }
+  const recording = kitchen.levelUp;
+  kitchen.close();
+  assert.ok(recording.pauses > 0);
+});
+
 test('effects mute/zero suppress every cue; horn uses supplied asset and stops on mute/reset', (t) => {
   const started = mockAudio(t);
   const kitchen = new SoundKitchen('/Alphabet-Soup/assets/LosingHorn.m4a');

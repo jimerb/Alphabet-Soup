@@ -36,6 +36,19 @@ test('52 permanent slots and deterministic random boards', () => {
   assert.deepEqual(sizes(s), CAPACITIES);
   assert.equal(s.board.length, 52);
 });
+
+test('fresh pots vary every non-hint slot and begin with only ordinary unburned tiles', () => {
+  const starts = Array.from({ length: 50 }, (_, seed) => newGame(seed));
+  for (const state of starts) {
+    assert.equal(col(state, 3).slice(0, 4).map((t) => t.letter).join(''), 'SOUP');
+    assert.ok(state.board.every((t) => t.tier === 'ordinary' && !t.isRed && !t.burnDamage));
+    assert.equal(state.level, 1);
+  }
+  for (const tile of starts[0].board) {
+    if (tile.column === 3 && tile.row < 4) continue;
+    assert.ok(new Set(starts.map((s) => s.board.find((t) => t.id === tile.id).letter)).size > 1);
+  }
+});
 test('staggered geometry is reciprocal and never square diagonals', () => {
   const s = newGame(4);
   assert.equal(neighbors(s.board, tile(s, 2, 3).id).length, 6);
