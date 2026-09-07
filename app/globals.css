@@ -245,7 +245,9 @@ h2.ribbon {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  overflow-wrap: normal;
   padding: 12px 8px;
 }
 .right-panel p {
@@ -1247,7 +1249,14 @@ footer {
   display: block;
   align-content: center;
   line-height: 1.15;
-  overflow-y: auto;
+  overflow: hidden;
+}
+.spelling-text {
+  display: inline-block;
+  width: max-content;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  vertical-align: middle;
 }
 .word-panel > p {
   height: 76px;
@@ -1324,9 +1333,6 @@ footer {
   }
   .word-panel > p {
     height: 66px;
-  }
-  .word-panel .spelling.long-word {
-    font-size: 18px;
   }
   .game-message {
     height: 54px;

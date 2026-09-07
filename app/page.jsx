@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import SoupSteam from './soup-steam';
 import AnimatedScore from './animated-score';
 import { SoundKitchen } from '@/lib/game/sound-kitchen';
@@ -176,6 +176,31 @@ export default function Home() {
   const available = path.length
     ? neighbors(state.board, path.at(-1)).map((t) => t.id)
     : [];
+  const spellingRef = useRef(null);
+  useLayoutEffect(() => {
+    const spelling = spellingRef.current;
+    if (!spelling) return;
+    const text = spelling.firstElementChild;
+    const fitWord = () => {
+      const style = getComputedStyle(spelling);
+      const baseSize = parseFloat(style.fontSize);
+      const availableWidth = spelling.clientWidth
+        - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2;
+      if (availableWidth <= 0) return;
+      // Measure the complete unwrapped text, independent of clipping and stage scale.
+      text.style.fontSize = `${baseSize}px`;
+      const naturalWidth = text.offsetWidth;
+      text.style.fontSize = `${baseSize * Math.min(1, availableWidth / Math.max(1, naturalWidth))}px`;
+    };
+    fitWord();
+    const observer = new ResizeObserver(fitWord);
+    observer.observe(spelling);
+    document.fonts.addEventListener('loadingdone', fitWord);
+    return () => {
+      observer.disconnect();
+      document.fonts.removeEventListener('loadingdone', fitWord);
+    };
+  }, [word]);
   useEffect(() => {
     const viewport = viewportRef.current;
     const stage = stageRef.current;
@@ -808,10 +833,11 @@ export default function Home() {
             <section className="word-panel brass">
               <h2 className="ribbon">Current Word</h2>
               <div
-                className={`spelling ${word.length > 8 ? 'long-word' : ''}`}
+                className="spelling"
+                ref={spellingRef}
                 aria-live="polite"
               >
-                {word || '—'}
+                <span className="spelling-text">{word || '—'}</span>
               </div>
               <p className={valid ? 'valid-note word-points' : ''}>
                 {!service ? (
