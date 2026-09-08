@@ -1338,3 +1338,19 @@ footer {
     height: 54px;
   }
 }
+.progress-storage-warning {
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 8px 14px;
+  border: 1px solid #b48741;
+  border-radius: 8px;
+  background: #fff4db;
+  color: #482913;
+  font: 14px/1.4 sans-serif;
+  text-align: center;
+}

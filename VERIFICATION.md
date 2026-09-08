@@ -1,3 +1,13 @@
+# Persistence verification - 2026-09-08
+
+- 44 automated tests pass, including 10 new persistence tests: complete state/selection round trips, deterministic continuation, score/checkpoint atomicity, legacy migration, one entry per run, new games, fatal boards with gaps, scrambles, damaged data, unsupported versions, write failures/recovery, missing browser locks, and serialized competing tabs (including queued stale selections).
+- Local browser: selected S then O, reloaded, and saw both selections restored on the identical board. Submitted SOUP and immediately reloaded during resolution; recovered score 360, turn 1, the completed refilled board, and an empty selection.
+- Local browser: advanced a scramble in a second tab; the older tab restored turn 2 and declined its stale action. Canceling New Game kept turn 2 and 360 points; confirming New Game and reloading restored turn 0 while Best stayed 360.
+- Production static build passes. Targeted lint on the new persistence module and tests passes; the existing game screen has pre-existing compiler, accessibility, and hook lint findings (confirmed against HEAD).
+- No full browser-process shutdown or overnight wait was performed. Reload and second-tab tests verify saved-state restoration; browser data deletion and private-session policies still apply.
+
+---
+
 # Verification — 2026-09-05
 
 ## Rule tests

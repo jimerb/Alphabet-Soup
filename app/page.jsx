@@ -5,7 +5,7 @@ import AnimatedScore from './animated-score';
 import { SoundKitchen } from '@/lib/game/sound-kitchen';
 import { tileFalls, phaseSound } from '@/lib/game/feedback';
 import { ScoreNote, ScoreLeaderboard } from './top-of-the-pot';
-import { HIGH_SCORES_KEY, localScoreDate, rankHighScores, readHighScores } from '@/lib/game/high-scores';
+import { SAVE_KEY, readSave, createPersistence } from '@/lib/game/persistence';
 import './tile-smoke.css';
 import {
   Settings,
@@ -141,6 +141,12 @@ export default function Home() {
   const [scoresSaved, setScoresSaved] = useState(true);
   const scoreNoteRef = useRef(null);
   const runId = useRef(null);
+  const persistence = useRef(null);
+  const checkpoint = useRef(null);
+  const isolated = useRef(false);
+  const [gameLoaded, setGameLoaded] = useState(false);
+  const [restoreEpoch, setRestoreEpoch] = useState(0);
+  const [saveWarning, setSaveWarning] = useState('');
   const [focusId, setFocusId] = useState('t0');
   const [trapped, setTrapped] = useState(false);
   const locked = useRef(false),
@@ -166,7 +172,7 @@ export default function Home() {
       (word === state.bonusTarget ? state.bonusAward : 0)
     : 0;
   const playable =
-    !busy &&
+    gameLoaded && !busy &&
     state.status === 'playing' &&
     !settingsOpen &&
     !helpOpen &&
@@ -271,32 +277,34 @@ export default function Home() {
         ...saved,
       });
     } catch {}
-    try {
-      const entries = readHighScores(localStorage);
-      setHighScores(entries);
-      setBest(entries[0]?.score || 0);
-      localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(entries));
-    } catch { setScoresSaved(false); }
     setPrefsLoaded(true);
     const params = new URLSearchParams(location.search);
-    if (import.meta.env.DEV && params.get('fixture') === 'mockup') {
-      const s = fixture();
-      setState(s);
-      setDisplay(s.board);
-      setFalls(tileFalls([], s.board));
-      setScoreTarget(s.score);
-      setMessage('Clear this burning tile on your next move.');
-    } else {
-      // Randomize in the browser after hydration; explicit seeds remain replayable.
-      const seed = params.has('seed')
-        ? Number(params.get('seed')) || 502
-        : crypto.getRandomValues(new Uint32Array(1))[0];
-      const s = newGame(seed);
-      setState(s);
-      setDisplay(s.board);
-      setFalls(tileFalls([], s.board));
-      setScoreTarget(s.score);
+    isolated.current = params.has('seed') || (import.meta.env.DEV && params.get('fixture') === 'mockup');
+    persistence.current = isolated.current ? null : createPersistence({
+      storage: () => localStorage, locks: navigator.locks,
+    });
+    let saved;
+    try { saved = persistence.current?.load(); }
+    catch { setScoresSaved(false); setSaveWarning('Progress could not be saved in this browser.'); }
+    if (saved) {
+      setHighScores(saved.scores);
+      setBest(saved.scores[0]?.score || 0);
     }
+    const seed = params.has('seed') ? Number(params.get('seed')) || 502
+      : crypto.getRandomValues(new Uint32Array(1))[0];
+    const game = saved?.game || {
+      id: crypto.randomUUID(),
+      state: import.meta.env.DEV && params.get('fixture') === 'mockup' ? fixture() : newGame(seed),
+      path: [], focusId: 't0',
+    };
+    restoreGame(game);
+    if (saved?.game) setMessage('Welcome back - your game has been restored.');
+    if (saved?.damaged) setMessage('Your saved game could not be restored. Your high scores have been kept.');
+    if (saved?.unsupported) {
+      setScoresSaved(false);
+      setSaveWarning('This saved game needs a newer version. Your existing save has been kept.');
+    }
+    setGameLoaded(true);
     return () => {
       mounted.current = false;
       clearTimeout(poseTimer.current);
@@ -314,16 +322,25 @@ export default function Home() {
   }, [settings, prefsLoaded]);
   useEffect(() => {
     const refreshScores = (event) => {
-      if (event.key !== HIGH_SCORES_KEY && event.key !== null) return;
+      if (isolated.current || (event.key !== SAVE_KEY && event.key !== null)) return;
       try {
-        const entries = readHighScores(localStorage);
-        setHighScores(entries);
-        setBest(entries[0]?.score || 0);
-      } catch { setScoresSaved(false); }
+        const saved = readSave(localStorage);
+        setHighScores(saved.scores);
+        setBest(saved.scores[0]?.score || 0);
+      } catch {
+        setScoresSaved(false);
+        setSaveWarning('Progress could not be saved in this browser.');
+      }
     };
     window.addEventListener('storage', refreshScores);
     return () => window.removeEventListener('storage', refreshScores);
   }, []);
+  useEffect(() => {
+    if (!gameLoaded || locked.current || !checkpoint.current) return;
+    const game = { ...checkpoint.current, path, focusId };
+    checkpoint.current = game;
+    void persistGame(game);
+  }, [path, focusId, gameLoaded]);
   useEffect(() => {
     if (!service || !hazards.bottom.length) {
       setTrapped(false);
@@ -342,21 +359,37 @@ export default function Home() {
       settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen,
     );
   }, [settings.music, settings.musicMute, settingsOpen, helpOpen, restartOpen, scoresOpen]);
-  function recordScore(score) {
-    // The development showcase is not a real played game.
-    if (import.meta.env.DEV && new URLSearchParams(location.search).get('fixture') === 'mockup') return;
-    if (score <= 0) return;
-    if (!runId.current) runId.current = crypto.randomUUID();
-    let entries = highScores;
-    try { entries = [...entries, ...readHighScores(localStorage)]; } catch {}
-    entries = rankHighScores([...entries, { id: runId.current, score, date: localScoreDate() }]);
-    setHighScores(entries);
-    setBest(entries[0]?.score || 0);
-    try {
-      localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(entries));
-      localStorage.setItem('alphabet-soup-best', String(entries[0]?.score || 0));
-      setScoresSaved(true);
-    } catch { setScoresSaved(false); }
+  function restoreGame(game) {
+    checkpoint.current = game;
+    runId.current = game.id;
+    setRestoreEpoch(n => n + 1);
+    setState(game.state);
+    setDisplay(game.state.board);
+    setScoreTarget(game.state.score);
+    setPath(game.path);
+    setFocusId(game.focusId);
+    setFalls({});
+    setActive([]);
+    setPhase('PLAYER_INPUT');
+  }
+  async function persistGame(game) {
+    if (!persistence.current) return true;
+    const result = await persistence.current.save(game);
+    if (!mounted.current) return false;
+    setHighScores(result.scores);
+    setBest(result.scores[0]?.score || 0);
+    setScoresSaved(result.saved);
+    setSaveWarning(result.unsupported
+      ? 'This saved game needs a newer version. Your existing save has been kept.'
+      : result.saved ? '' : 'Progress could not be saved in this browser.');
+    if (result.conflict) {
+      if (result.game) restoreGame(result.game);
+      setMessage(result.game ? 'Your latest game from another tab has been restored. Please try again.'
+        : 'The saved game changed in another tab. Please reload before continuing.');
+      if (!result.game) setGameLoaded(false);
+      return false;
+    }
+    return true;
   }
   useEffect(() => {
     audio.current?.setEffects(settings.sound, settings.soundMute);
@@ -406,6 +439,13 @@ export default function Home() {
     }
     locked.current = true;
     setBusy(true);
+    const game = { id: runId.current, state: result.state, path: [], focusId: result.state.board[0]?.id };
+    if (!await persistGame(game)) {
+      locked.current = false;
+      setBusy(false);
+      return { error: 'The latest saved game was restored. Please try again.' };
+    }
+    checkpoint.current = game;
     setPath([]);
     setTrapped(false);
     reactTo(result.actual || 3);
@@ -462,7 +502,6 @@ export default function Home() {
             : 'Freshly stirred. Find your next word.',
     );
     setFocusId(result.state.board[0]?.id);
-    recordScore(result.state.score);
     return {
       word: result.word,
       points: result.points,
@@ -471,11 +510,24 @@ export default function Home() {
       turn: result.state.turnNumber,
     };
   }
-  function reset() {
+  async function reset() {
+    if (locked.current || !gameLoaded) return;
+    locked.current = true;
+    setBusy(true);
     audio.current?.stopHorn();
     audio.current?.stopLevelUp();
-    runId.current = null;
     const s = newGame(Date.now());
+    const game = { id: crypto.randomUUID(), state: s, path: [], focusId: 't0' };
+    if (!await persistGame(game)) {
+      locked.current = false;
+      setBusy(false);
+      setRestartOpen(false);
+      return;
+    }
+    checkpoint.current = game;
+    runId.current = game.id;
+    locked.current = false;
+    setBusy(false);
     setState(s);
     setDisplay(s.board);
     setFalls(tileFalls([], s.board));
@@ -613,6 +665,7 @@ export default function Home() {
       }}
     >
       <SoupSteam />
+      {saveWarning && <output className="progress-storage-warning">{saveWarning}</output>}
       <div
         ref={stageRef}
         className="game-stage"
@@ -652,7 +705,7 @@ export default function Home() {
           <aside className="left-panel">
             <div className="score-panel brass">
               <h2>Score</h2>
-              <AnimatedScore score={scoreTarget} reducedMotion={settings.motion} audio={audio} />
+              <AnimatedScore key={restoreEpoch} score={scoreTarget} reducedMotion={settings.motion} audio={audio} />
               <span className="medallion" aria-hidden="true">
                 ★
               </span>
@@ -743,6 +796,7 @@ export default function Home() {
                         aria-pressed={index >= 0}
                         tabIndex={focusId === t.id ? 0 : -1}
                         disabled={!playable}
+                        onFocus={() => { if (playable) setFocusId(t.id); }}
                         onKeyDown={(e) => keyboard(e, t)}
                         onClick={(e) => {
                           if (e.detail === 0) select(t.id);
