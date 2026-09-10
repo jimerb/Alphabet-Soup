@@ -9,7 +9,7 @@
 .steam-anchor {
   position: absolute;
   left: calc(var(--column) * (var(--tile) + 9px) + 6px);
-  top: calc(var(--row) * (var(--cellh) + 3px) + 7px);
+  top: calc(var(--row) * (var(--cellh) + var(--row-gap, 3px)) + 7px);
   width: calc(var(--tile) - 4px);
   height: var(--cellh);
   transition:
@@ -17,7 +17,7 @@
     left 280ms ease;
 }
 .steam-anchor.staggered {
-  margin-top: calc((var(--cellh) + 3px) / 2);
+  margin-top: calc((var(--cellh) + var(--row-gap, 3px)) / 2);
 }
 .steam-anchor.steam-falling {
   transition: none;
@@ -74,7 +74,7 @@
 @media (max-width: 700px) {
   .steam-anchor {
     left: calc(var(--column) * (var(--tile) + 9px) + 4px);
-    top: calc(var(--row) * (var(--cellh) + 3px) + 6px);
+    top: calc(var(--row) * (var(--cellh) + var(--row-gap, 3px)) + 6px);
     width: var(--tile);
   }
 }

@@ -147,3 +147,30 @@ test('effects mute/zero suppress every cue; horn uses supplied asset and stops o
   kitchen.close();
   assert.equal(kitchen.ctx, null);
 });
+
+test('a gesture resumes suspended and Safari-interrupted audio without replacing players or mute settings', async (t) => {
+  const started = mockAudio(t);
+  const kitchen = new SoundKitchen('/horn.m4a', '/level.wav', '/music.m4a');
+  kitchen.setEffects(55, true);
+  kitchen.start();
+  const context = kitchen.ctx, horn = kitchen.horn, music = kitchen.music;
+  let resumes = 0;
+  context.resume = async () => { resumes++; context.state = 'running'; };
+  for (const state of ['suspended', 'interrupted']) {
+    context.state = state;
+    kitchen.start();
+    assert.equal(context.state, 'running');
+    assert.equal(kitchen.ctx, context);
+    assert.equal(kitchen.horn, horn);
+    assert.equal(kitchen.music, music);
+    kitchen.play('tile');
+    assert.equal(started.length, 0);
+  }
+  assert.equal(resumes, 2);
+  context.state = 'interrupted';
+  context.resume = () => Promise.reject(new Error('User activation required'));
+  kitchen.start();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(kitchen.ctx, context, 'a rejected resume is safe to retry on the next gesture');
+  kitchen.close();
+});

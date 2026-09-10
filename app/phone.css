@@ -1,0 +1,284 @@
+/* Phone-only overrides. Desktop and tablet geometry stays in globals.css. */
+.phone-only { display: none; }
+.phone-stage button, .phone-dialog button { touch-action: manipulation; }
+.phone-stage .tile {
+  touch-action: none;
+  /* Viewport changes must fit immediately; gameplay falls have their own animation. */
+  transition: filter 0.15s;
+}
+.phone-feedback-text { display: inline-block; width: max-content; white-space: nowrap; }
+.kitchen[data-phone='true'] {
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  background-attachment: scroll;
+}
+.game-stage.phone-stage {
+  --row-gap: 1px;
+  --column-extra: 1px;
+  --tile-top: 1px;
+  padding: 2px 4px;
+  align-content: center;
+}
+.game-stage.phone-stage .game-layout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: 44px 18px 42px calc(8 * (var(--cellh) + 1px) + 1px) 44px 14px;
+  gap: 1px;
+  width: 100%;
+}
+.phone-stage .left-panel,
+.phone-stage .right-panel,
+.phone-stage .word-panel { display: contents; }
+.game-stage.phone-stage h1,
+.phone-stage .gear,
+.phone-stage .character,
+.phone-stage .medallion,
+.phone-stage .new-game,
+.phone-stage .best,
+.phone-stage .score-note,
+.phone-stage .word-panel > h2,
+.phone-stage .danger-panel > h2,
+.phone-stage .danger-panel > p,
+.phone-stage .danger-panel .meter,
+.phone-stage .bonus-panel > p,
+.phone-stage .game-message,
+.phone-stage .game-over,
+.phone-stage footer { display: none; }
+.phone-stage .score-panel {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 80px 0 6px;
+  border-width: 1px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.phone-stage .score-panel h2,
+.phone-stage .score-panel h2:nth-of-type(2) {
+  font-size: 14px;
+  margin: 0;
+  letter-spacing: 0;
+}
+.phone-stage .score {
+  font-size: clamp(17px, 5vw, 23px);
+  min-width: 0;
+  margin: 0;
+  padding: 3px;
+  flex: 1;
+  border-width: 1px;
+  border-radius: 5px;
+}
+.phone-stage .level {
+  font-size: 19px;
+  border: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+.phone-stage .phone-more {
+  display: block;
+  position: absolute;
+  top: calc((100% - (44px + 18px + 42px + 8 * (var(--cellh) + 1px) + 1px + 44px + 14px + 5px)) / 2);
+  right: 4px;
+  width: 74px;
+  height: 44px;
+  border: 2px solid #ddb768;
+  border-radius: 8px;
+  background: #194c40;
+  color: #ffe8ae;
+  font: bold 16px Arial, sans-serif;
+  z-index: 2;
+}
+.phone-stage .bonus-panel,
+.phone-stage .danger-panel {
+  grid-row: 2;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 3px;
+  margin: 0;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  font-size: 14px;
+}
+.phone-stage .bonus-panel { grid-column: 1 / 3; }
+.phone-stage .danger-panel { grid-column: 3; justify-content: center; }
+.phone-stage .bonus-panel h2.ribbon {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.phone-stage .bonus-word {
+  padding: 0;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.phone-stage .phone-fire { display: flex; align-items: center; gap: 2px; white-space: nowrap; font-size: 12px; }
+.phone-stage .danger-panel.urgent { color: #ffe19c; background: #84210b; animation: none; }
+.phone-stage .word-panel .spelling {
+  grid-row: 3;
+  grid-column: 1 / -1;
+  align-self: start;
+  height: 27px;
+  padding: 0 4px;
+  font-size: 26px;
+  line-height: 1;
+  background: #092e29;
+  border-radius: 6px 6px 0 0;
+}
+.phone-stage .word-panel > p,
+.phone-stage .word-panel > p.word-points {
+  grid-row: 3;
+  grid-column: 1 / -1;
+  align-self: end;
+  display: block;
+  height: 15px;
+  padding: 0 4px;
+  margin: 0;
+  overflow: hidden;
+  font: 14px/15px Georgia, serif;
+  white-space: nowrap;
+  background: #092e29;
+  border-radius: 0 0 6px 6px;
+}
+.phone-stage .board {
+  grid-row: 4;
+  grid-column: 1 / -1;
+  width: max-content;
+  margin: 0 auto;
+  padding: 0;
+  gap: 1px;
+}
+.game-stage.phone-stage .board .column {
+  width: var(--tile);
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+}
+.game-stage.phone-stage .board .column .tile {
+  left: 0;
+  width: 100%;
+  font-size: clamp(23px, calc(var(--cellh) * 0.57), 30px);
+  border-width: 2px;
+  border-radius: 6px;
+  -webkit-touch-callout: none;
+}
+.phone-stage .tile.selected { transform: none; }
+.phone-stage .tier-symbol { font-size: 11px; left: 2px; bottom: 1px; }
+.phone-stage .tile .path-number { font-size: 10px; min-width: 12px; height: 12px; line-height: 12px; top: 1px; right: 1px; }
+.phone-stage .fire-symbol { width: 12px; height: 14px; }
+.phone-stage .path-lines { inset: 0; width: 100%; height: 100%; }
+.phone-stage .steam-anchor {
+  left: calc(var(--column) * (var(--tile) + 1px));
+  top: calc(var(--row) * (var(--cellh) + var(--row-gap)) + var(--tile-top));
+  width: var(--tile);
+  transition: none;
+}
+.phone-stage .word-panel .clear-word,
+.phone-stage .right-panel .submit,
+.phone-stage .left-panel .scramble {
+  grid-row: 5;
+  align-self: stretch;
+  width: 100%;
+  min-height: 44px;
+  height: 44px;
+  padding: 2px;
+  margin: 0;
+  gap: 3px;
+  border-width: 2px;
+  border-radius: 8px;
+  font: bold 16px Arial, sans-serif;
+  box-shadow: none;
+}
+.phone-stage .word-panel .clear-word { grid-column: 1; display: flex; }
+.phone-stage .right-panel .submit { grid-column: 2; border-color: #ffe8a4; }
+.phone-stage .left-panel .scramble { grid-column: 3; background: #194c40; }
+.phone-stage .scramble svg { width: 18px; }
+.phone-stage .phone-storage-note {
+  display: block;
+  grid-column: 1 / -1;
+  grid-row: 6;
+  height: 14px;
+  margin: 0;
+  text-align: center;
+  font: 11px/14px Arial, sans-serif;
+  color: #ffe8ae;
+  background: #092e29;
+  border-radius: 3px;
+}
+.phone-stage .phone-storage-note:empty { visibility: hidden; }
+.phone-dialog[data-slot='dialog-content'],
+.phone-dialog[data-slot='alert-dialog-content'] {
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 16px);
+  max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px) !important;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 48px 18px 18px !important;
+}
+.phone-menu[data-slot='dialog-content'] {
+  top: auto;
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  translate: none;
+  width: 440px;
+  gap: 12px;
+  background: #103c33;
+}
+.phone-menu .action { min-height: 44px; font-size: 18px; }
+.phone-dialog [data-slot='dialog-close'] { min-width: 44px; min-height: 44px; }
+.phone-dialog .toggle,
+.phone-dialog [data-slot='slider'],
+.phone-dialog .pot-resume,
+.phone-dialog .dialog-actions button { min-height: 44px; }
+.phone-stage.phone-landscape .game-layout {
+  grid-template-columns: calc(7 * var(--tile) + 6px) minmax(0, 1fr);
+  grid-template-rows: 44px 18px 42px repeat(3, 44px) 14px;
+  column-gap: 8px;
+  width: 100%;
+  height: calc(8 * (var(--cellh) + 1px) + 1px);
+  align-content: center;
+}
+.phone-stage.phone-landscape .board { grid-column: 1; grid-row: 1 / 8; align-self: center; }
+.phone-stage.phone-landscape .score-panel { grid-column: 2; grid-row: 1; padding: 0 76px 0 3px; gap: 3px; }
+.phone-stage.phone-landscape .score-panel h2 { font-size: 12px; }
+.phone-stage.phone-landscape .score { font-size: 17px; }
+.phone-stage.phone-landscape .phone-more { top: calc((100% - 256px) / 2); }
+.phone-stage.phone-landscape .bonus-panel { grid-column: 2; grid-row: 2; margin-right: 94px; }
+.phone-stage.phone-landscape .danger-panel { grid-column: 2; grid-row: 2; width: 92px; justify-self: end; }
+.phone-stage.phone-landscape .word-panel .spelling,
+.phone-stage.phone-landscape .word-panel > p { grid-column: 2; grid-row: 3; }
+.phone-stage.phone-landscape .right-panel .submit { grid-column: 2; grid-row: 4; }
+.phone-stage.phone-landscape .word-panel .clear-word { grid-column: 2; grid-row: 5; }
+.phone-stage.phone-landscape .left-panel .scramble { grid-column: 2; grid-row: 6; }
+.phone-stage.phone-landscape .phone-storage-note { grid-column: 2; grid-row: 7; }
+.phone-stage.phone-blocked .game-layout,
+.phone-stage.phone-blocked > .phone-more { visibility: hidden; }
+.phone-space-message {
+  position: absolute;
+  inset: 12px;
+  margin: auto;
+  height: max-content;
+  max-height: calc(100% - 24px);
+  max-width: 420px;
+  overflow: auto;
+  padding: 20px;
+  text-align: center;
+  background: #103c33;
+}
+.phone-space-message strong { font-size: 23px; }
+.phone-space-message p { margin: 12px 0; }
+.phone-space-message button { width: 100%; min-height: 44px; }
+.kitchen[data-phone='true'] .progress-storage-warning {
+  /* More retains the full warning; its persistent ! keeps controls unobstructed. */
+  display: none;
+}

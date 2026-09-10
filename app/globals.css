@@ -188,7 +188,7 @@ h2.ribbon {
   border-radius: 14px;
 }
 .column:nth-child(odd) {
-  margin-top: calc((var(--cellh) + 3px) /2);
+  margin-top: calc((var(--cellh) + var(--row-gap, 3px)) /2);
 }
 .tile {
   width: 100%;
@@ -1309,7 +1309,7 @@ footer {
 }
 @keyframes crouton-fall {
   0% {
-    transform: translateY(calc(var(--fall-rows) * (var(--cellh) + 3px))) rotate(var(--fall-tilt)) scale(0.94, 1.02);
+    transform: translateY(calc(var(--fall-rows) * (var(--cellh) + var(--row-gap, 3px)))) rotate(var(--fall-tilt)) scale(0.94, 1.02);
     animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.55);
   }
   64% {

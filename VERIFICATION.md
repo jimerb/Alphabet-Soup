@@ -1,3 +1,33 @@
+# Phone compatibility verification - 2026-09-10
+
+## LAN preview follow-up
+
+- Phone feedback follow-up: save notices now occupy a fixed 14px row beneath the play buttons. The current word explicitly reads `✓ Valid word · 360 points` for SOUP, independently of save status. More explains the HTTP preview limitation and that first-time visits are not the cause. Desktop notices and save protections are preserved.
+- Rechecked all 20 phone viewport combinations with a live save warning: all 52 tiles and the notice fit without page scrolling, with a 40px minimum tile height. Clear, partial-word feedback, valid-word feedback, More/resume, rotation, and SOUP submission passed with no page errors; selection feedback did not move the board. Desktop excluded the new notice row. All 51 automated tests pass.
+
+- `pnpm dev` now binds all network interfaces on port 3000 using Vinext's `--hostname` option. Verified HTTP 200 at http://192.168.1.103:3000/ and server hostname `0.0.0.0`; localhost remains usable. The preview is left running for physical-phone testing on the same network.
+- LAN HTTP lacks `crypto.randomUUID`, so game IDs now fall back to cryptographic random bytes with the same UUID v4 format. Native UUID generation remains unchanged on secure origins. Two focused tests bring the suite to 51 passing tests; targeted lint and whitespace checks pass.
+- Chromium touch emulation at the LAN URL loaded all 52 tiles, submitted SOUP for 360 points, opened More, confirmed New Game, and returned to score zero without page errors or page scrolling. This verifies LAN-origin play from this machine, not a physical phone's connection or sound output.
+- LAN HTTP also lacks Web Locks. Existing safe memory-only play and its visible save warning remain intact; refreshing this preview can lose the run. HTTPS save behavior and the save format are unchanged.
+- Production export completed cleanly with exit code 0 in the final terminal run. Two preceding runs completed export but encountered the existing intermittent Windows libuv shutdown assertion.
+- No commit, push, deployment, firewall change, or additional listening port was made.
+
+## Phone layout checks
+
+- 49 automated tests pass: the prior 44 plus phone size boundaries, desktop/tablet exclusion, single-pointer ownership, gesture cancellation, and Safari-interrupted audio recovery. No rule, dictionary, save-schema, dependency, or hosting changes.
+- Production build completed with exit code 0 using the existing Vinext build command. Some earlier Windows runs hit a native libuv shutdown assertion after completing the export; the final run completed cleanly outside the sandbox. The exported game was also exercised through a local static server.
+- Production Chrome touch emulation: all 20 combinations of widths 360/375/390/412/430 and heights 500/550/700/820 show all 52 tiles, current word, and controls without page scrolling. Smallest measured tile was approximately 49.42 x 40.375px at 360 x 500; action controls are 44px tall. Layout changes now reposition tiles immediately, without the previous top-position transition briefly pushing them offscreen.
+- A 23-letter selection at 360px fit completely (341.7px text within a 352px container, approximately 17.6px font). Selection and score feedback did not move the board. Simulated 47px top and 34px bottom safe-area padding kept essential content inside the usable viewport.
+- Real touch events through Chromium's input protocol formed SOUP by dragging; taps backtracked to SO and extended to SOU. Cancellation released ownership. Portrait/landscape changes preserved selection, and rotating during submission completed at 360 points with 52 tiles. Insufficient landscape height displayed the portrait prompt and retained the run.
+- More paused interaction and preserved the word. Settings, Help, Top Of The Pot, restart cancellation, and closing/resuming returned to the same game and visible control. Mute effects, reduced motion, and high contrast toggles persisted across reload. The sound tests cover interruption recovery, mute, effects, and retained players; they do not prove audible output on a physical phone.
+- Invalid submission spent no turn; SOUP scored 360. The development fixture rescued bottom fire with SHY for 390 points; Scramble stayed disabled until rescue, then retained the score. TIN without rescue ended the fixture at 420, preserved its final tiles, and confirmed New Game successfully reset it. A normal saved run restored the identical board and SO selection after reload in an isolated browser profile.
+- Compared against the unchanged HEAD in an isolated temporary copy: stage, board, word, score-panel, Submit, and Scramble rectangles matched exactly at 1440x900, 1024x768, 768x1024, and 600x960. Desktop mouse dragging and arrow/Space/Enter/Escape controls passed. Screenshots and the production size matrix are retained under ignored `work/phone-qa/`; the temporary source copy was removed.
+- Targeted lint found the same 13 pre-existing screen findings as unchanged HEAD and no new findings in the added modules/tests. Whitespace checks pass.
+- Remaining release checks: physical iPhone Safari and Chrome, physical Android Chrome, actual iPad Safari/Chrome, audible music/effects after app switching or screen locking, and genuine browser toolbar/notch behavior. These physical-device and WebKit checks were not performed in this environment. Emulation is not a claim of those checks passing.
+- Local preview is retained at http://localhost:3000/. Nothing was committed, pushed, or published.
+
+---
+
 # Persistence verification - 2026-09-08
 
 - 44 automated tests pass, including 10 new persistence tests: complete state/selection round trips, deterministic continuation, score/checkpoint atomicity, legacy migration, one entry per run, new games, fatal boards with gaps, scrambles, damaged data, unsupported versions, write failures/recovery, missing browser locks, and serialized competing tabs (including queued stale selections).

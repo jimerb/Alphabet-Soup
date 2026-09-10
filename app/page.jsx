@@ -6,7 +6,11 @@ import { SoundKitchen } from '@/lib/game/sound-kitchen';
 import { tileFalls, phaseSound } from '@/lib/game/feedback';
 import { ScoreNote, ScoreLeaderboard } from './top-of-the-pot';
 import { SAVE_KEY, readSave, createPersistence } from '@/lib/game/persistence';
+import { phoneMode, phoneLayout } from '@/lib/game/phone-layout';
+import { tilePointer } from '@/lib/game/tile-pointer';
+import { gameId } from '@/lib/game/game-id';
 import './tile-smoke.css';
+import './phone.css';
 import {
   Settings,
   RotateCw,
@@ -46,6 +50,11 @@ import {
   CAPACITIES,
   TIERS,
 } from '@/lib/game/engine';
+function storageWarning() {
+  return !window.isSecureContext && !navigator.locks
+    ? 'This HTTP preview cannot save progress. Keep this tab open while testing. Saving works on the normal HTTPS site; this is not caused by your first visit.'
+    : 'Progress could not be saved in this browser.';
+}
 const DEFAULTS = {
   sound: 55,
   music: 10,
@@ -126,6 +135,7 @@ export default function Home() {
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [fit, setFit] = useState({ width: 1170, scale: 1, compact: false });
   const [restartOpen, setRestartOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -140,6 +150,9 @@ export default function Home() {
   const [scoresOpen, setScoresOpen] = useState(false);
   const [scoresSaved, setScoresSaved] = useState(true);
   const scoreNoteRef = useRef(null);
+  const moreRef = useRef(null);
+  const phoneFeedbackRef = useRef(null);
+  const gesture = useRef(tilePointer());
   const runId = useRef(null);
   const persistence = useRef(null);
   const checkpoint = useRef(null);
@@ -151,8 +164,6 @@ export default function Home() {
   const [trapped, setTrapped] = useState(false);
   const locked = useRef(false),
     mounted = useRef(true),
-    dragging = useRef(false),
-    lastTouched = useRef(null),
     boardRef = useRef(null),
     viewportRef = useRef(null),
     stageRef = useRef(null),
@@ -178,6 +189,7 @@ export default function Home() {
     !helpOpen &&
     !restartOpen &&
     !scoresOpen &&
+    !moreOpen && !fit.blocked &&
     !!service;
   const available = path.length
     ? neighbors(state.board, path.at(-1)).map((t) => t.id)
@@ -210,19 +222,33 @@ export default function Home() {
   useEffect(() => {
     const viewport = viewportRef.current;
     const stage = stageRef.current;
+    const touch = matchMedia('(any-pointer: coarse)');
     let lastSize = '';
     let frame;
     const resize = () => {
       const width = viewport.clientWidth;
       const height = viewport.clientHeight;
-      const size = `${width}:${height}:${window.devicePixelRatio}`;
+      const phone = phoneMode(width, height, touch.matches);
+      viewport.dataset.phone = String(phone);
+      const safe = getComputedStyle(viewport);
+      const safeWidth = width - parseFloat(safe.paddingLeft) - parseFloat(safe.paddingRight);
+      const safeHeight = height - parseFloat(safe.paddingTop) - parseFloat(safe.paddingBottom);
+      const size = `${safeWidth}:${safeHeight}:${window.devicePixelRatio}:${phone}`;
       if (size === lastSize) return;
       lastSize = size;
+      gesture.current.end();
+      if (phone) {
+        setFit(phoneLayout(safeWidth, safeHeight));
+        return;
+      }
       const compact = width <= 700;
       const stageWidth = compact
         ? Math.max(320, width)
         : Math.max(1040, Math.min(1240, width));
       // Measure at the new viewport's layout width, never the previous width.
+      stage.classList.remove('phone-stage', 'phone-landscape', 'phone-blocked');
+      stage.style.removeProperty('--cellh');
+      stage.style.removeProperty('height');
       stage.style.width = `${stageWidth}px`;
       stage.style.setProperty(
         '--tile',
@@ -250,12 +276,33 @@ export default function Home() {
     const observer = new ResizeObserver(scheduleResize);
     observer.observe(viewport);
     window.addEventListener('resize', scheduleResize);
+    window.visualViewport?.addEventListener('resize', scheduleResize);
+    touch.addEventListener('change', scheduleResize);
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', scheduleResize);
+      window.visualViewport?.removeEventListener('resize', scheduleResize);
+      touch.removeEventListener('change', scheduleResize);
       cancelAnimationFrame(frame);
     };
   }, []);
+  useEffect(() => {
+    const end = (event) => gesture.current.end(event);
+    const cancel = () => gesture.current.end();
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    window.addEventListener('blur', cancel);
+    document.addEventListener('visibilitychange', cancel);
+    return () => {
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+      window.removeEventListener('blur', cancel);
+      document.removeEventListener('visibilitychange', cancel);
+    };
+  }, []);
+  useEffect(() => {
+    if (!playable) gesture.current.end();
+  }, [playable]);
   useEffect(() => {
     mounted.current = true;
     fetch(`${basePath}/words.txt`)
@@ -285,7 +332,7 @@ export default function Home() {
     });
     let saved;
     try { saved = persistence.current?.load(); }
-    catch { setScoresSaved(false); setSaveWarning('Progress could not be saved in this browser.'); }
+    catch { setScoresSaved(false); setSaveWarning(storageWarning()); }
     if (saved) {
       setHighScores(saved.scores);
       setBest(saved.scores[0]?.score || 0);
@@ -293,7 +340,7 @@ export default function Home() {
     const seed = params.has('seed') ? Number(params.get('seed')) || 502
       : crypto.getRandomValues(new Uint32Array(1))[0];
     const game = saved?.game || {
-      id: crypto.randomUUID(),
+      id: gameId(),
       state: import.meta.env.DEV && params.get('fixture') === 'mockup' ? fixture() : newGame(seed),
       path: [], focusId: 't0',
     };
@@ -329,7 +376,7 @@ export default function Home() {
         setBest(saved.scores[0]?.score || 0);
       } catch {
         setScoresSaved(false);
-        setSaveWarning('Progress could not be saved in this browser.');
+        setSaveWarning(storageWarning());
       }
     };
     window.addEventListener('storage', refreshScores);
@@ -356,9 +403,9 @@ export default function Home() {
   useEffect(() => {
     audio.current?.setMusic(
       settings.music,
-      settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen,
+      settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen || moreOpen || fit.blocked,
     );
-  }, [settings.music, settings.musicMute, settingsOpen, helpOpen, restartOpen, scoresOpen]);
+  }, [settings.music, settings.musicMute, settingsOpen, helpOpen, restartOpen, scoresOpen, moreOpen, fit.blocked]);
   function restoreGame(game) {
     checkpoint.current = game;
     runId.current = game.id;
@@ -381,7 +428,7 @@ export default function Home() {
     setScoresSaved(result.saved);
     setSaveWarning(result.unsupported
       ? 'This saved game needs a newer version. Your existing save has been kept.'
-      : result.saved ? '' : 'Progress could not be saved in this browser.');
+      : result.saved ? '' : storageWarning());
     if (result.conflict) {
       if (result.game) restoreGame(result.game);
       setMessage(result.game ? 'Your latest game from another tab has been restored. Please try again.'
@@ -404,7 +451,7 @@ export default function Home() {
     audio.current.start();
     audio.current.setMusic(
       settings.music,
-      settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen,
+      settings.musicMute || settingsOpen || helpOpen || restartOpen || scoresOpen || moreOpen || fit.blocked,
     );
   }
   function chime(kind) {
@@ -517,7 +564,7 @@ export default function Home() {
     audio.current?.stopHorn();
     audio.current?.stopLevelUp();
     const s = newGame(Date.now());
-    const game = { id: crypto.randomUUID(), state: s, path: [], focusId: 't0' };
+    const game = { id: gameId(), state: s, path: [], focusId: 't0' };
     if (!await persistGame(game)) {
       locked.current = false;
       setBusy(false);
@@ -651,16 +698,54 @@ export default function Home() {
     return () => lifecycle.abort();
   }, []);
   const closeSettings = () => {
+    startSound();
     setSettingsOpen(false);
-    requestAnimationFrame(() => gearRef.current?.focus());
+    focusControl(gearRef);
   };
+  function focusControl(desktopRef) {
+    requestAnimationFrame(() => (fit.phone ? moreRef : desktopRef).current?.focus({ preventScroll: true }));
+  }
+  function closeMore() {
+    startSound();
+    setMoreOpen(false);
+    focusControl(gearRef);
+  }
+  function openFromMore(setOpen) {
+    setMoreOpen(false);
+    setOpen(true);
+  }
+  const phoneFeedback = !service
+    ? loadError ? 'Dictionary unavailable. Reload to retry.' : 'Warming up the dictionary…'
+    : state.status === 'game-over' ? `Soup’s over! ${state.score.toLocaleString()} points · More for New Game`
+    : trapped ? 'No rescue word. Open More for New Game.'
+    : word ? valid ? `✓ Valid word · ${preview.toLocaleString()} points` : word.length < 3 ? 'Keep going · 3 letters minimum' : 'Not in the dictionary'
+    : hazards.bottom.length ? 'Clear bottom fire on your next move.'
+    : message.startsWith('A fresh pot!') ? 'Connect 3 or more letters'
+    : message.startsWith('Your latest game') ? 'Latest game restored · please try again'
+    : message.startsWith('Your saved game could not') ? 'Game could not be restored · scores kept'
+    : message.startsWith('No playable scramble') ? 'No scramble available · no turn spent'
+    : message;
+  useLayoutEffect(() => {
+    const box = phoneFeedbackRef.current;
+    if (!fit.phone || !box) return;
+    const text = box.firstElementChild;
+    const measure = () => {
+      text.style.fontSize = '14px';
+      text.style.fontSize = `${14 * Math.min(1, (box.clientWidth - 8) / Math.max(1, text.offsetWidth))}px`;
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    document.fonts.addEventListener('loadingdone', measure);
+    return () => { observer.disconnect(); document.fonts.removeEventListener('loadingdone', measure); };
+  }, [phoneFeedback, fit.phone]);
   return (
     <main
       ref={viewportRef}
       className={`kitchen ${settings.motion ? 'reduced-motion' : ''} ${settings.contrast ? 'high-contrast' : ''}`}
       style={{ '--asset-url': `url('${basePath}/assets/kitchen.png')` }}
       onKeyDown={(e) => {
-        if (e.key === 'Escape' && !settingsOpen && !helpOpen && !restartOpen && !scoresOpen)
+        if (e.key === 'Escape' && !settingsOpen && !helpOpen && !restartOpen && !scoresOpen && !moreOpen)
           setPath([]);
       }}
     >
@@ -668,13 +753,18 @@ export default function Home() {
       {saveWarning && <output className="progress-storage-warning">{saveWarning}</output>}
       <div
         ref={stageRef}
-        className="game-stage"
+        className={`game-stage ${fit.phone ? 'phone-stage' : ''} ${fit.landscape ? 'phone-landscape' : ''} ${fit.blocked ? 'phone-blocked' : ''}`}
         style={{
           width: fit.width,
           transform: `scale(${fit.scale})`,
-          '--tile': `${fit.compact ? Math.min(60, (fit.width - 86) / 7) : Math.min(90, (fit.width - 570) / 7)}px`,
+          '--tile': `${fit.phone ? fit.cellWidth : fit.compact ? Math.min(60, (fit.width - 86) / 7) : Math.min(90, (fit.width - 570) / 7)}px`,
+          ...(fit.phone ? { height: fit.height, '--cellh': `${fit.cellHeight}px` } : {}),
         }}
       >
+        <button ref={fit.blocked ? undefined : moreRef} className="phone-only phone-more" disabled={busy}
+          aria-haspopup="dialog" aria-expanded={moreOpen}
+          title={saveWarning || undefined}
+          onClick={() => { startSound(); setMoreOpen(true); }}>More{saveWarning ? ' !' : ''}</button>
         <button
           ref={helpRef}
           className="gear help-button"
@@ -719,7 +809,7 @@ export default function Home() {
               />
             </div>
             <button
-              className="action brass"
+              className="action brass scramble"
               disabled={!playable || hazards.bottom.length > 0}
               title={
                 hazards.bottom.length
@@ -731,7 +821,7 @@ export default function Home() {
               <RotateCw size={25} /> Scramble
             </button>
             <button
-              className="action teal brass"
+              className="action teal brass new-game"
               disabled={busy}
               onClick={() =>
                 state.status === 'game-over' ? reset() : setRestartOpen(true)
@@ -750,28 +840,19 @@ export default function Home() {
             aria-label="Letter board"
             aria-busy={busy}
             onPointerMove={(e) => {
-              if (!dragging.current || !playable) return;
+              if (!gesture.current.owns(e) || !playable) return;
               const el = document
                 .elementFromPoint(e.clientX, e.clientY)
                 ?.closest('[data-tile]');
               const id = el?.getAttribute('data-tile');
-              if (id && id !== lastTouched.current) {
-                select(id);
-                lastTouched.current = id;
-              }
+              if (gesture.current.move(e, id)) select(id);
             }}
-            onPointerUp={() => {
-              dragging.current = false;
-              lastTouched.current = null;
-            }}
-            onPointerCancel={() => {
-              dragging.current = false;
-              lastTouched.current = null;
-            }}
+            onPointerUp={(e) => gesture.current.end(e)}
+            onPointerCancel={(e) => gesture.current.end(e)}
+            onLostPointerCapture={(e) => gesture.current.end(e)}
             onPointerLeave={(e) => {
               if (e.pointerType === 'mouse') {
-                dragging.current = false;
-                lastTouched.current = null;
+                gesture.current.end(e);
               }
             }}
           >
@@ -780,7 +861,7 @@ export default function Home() {
                 key={c}
                 className={`column brass col-${c}`}
                 style={{
-                  height: `calc(${CAPACITIES[c]} * (var(--cellh) + 3px) + 5px)`,
+                  height: `calc(${CAPACITIES[c]} * (var(--cellh) + var(--row-gap, 3px)) + var(--column-extra, 5px))`,
                 }}
               >
                 {display
@@ -802,15 +883,15 @@ export default function Home() {
                           if (e.detail === 0) select(t.id);
                         }}
                         onPointerDown={(e) => {
-                          if (!playable || e.button !== 0) return;
+                          if (!playable || !gesture.current.begin(e, t.id)) return;
                           e.preventDefault();
-                          e.currentTarget.focus();
-                          dragging.current = true;
-                          lastTouched.current = t.id;
+                          e.currentTarget.focus({ preventScroll: true });
+                          // Capture touch only; desktop keeps its existing leave-to-stop behavior.
+                          if (e.pointerType !== 'mouse') boardRef.current.setPointerCapture(e.pointerId);
                           select(t.id);
                         }}
                         style={{
-                          top: `calc(${t.row} * (var(--cellh) + 3px) + 4px)`,
+                          top: `calc(${t.row} * (var(--cellh) + var(--row-gap, 3px)) + var(--tile-top, 4px))`,
                           '--fall-rows': fall?.rows ?? 0,
                           '--fall-delay': `${fall?.delay ?? 0}ms`,
                           '--fall-tilt': `${fall?.tilt ?? 0}deg`,
@@ -846,19 +927,21 @@ export default function Home() {
             {path.length > 1 && (
               <svg
                 className="path-lines"
-                viewBox="0 0 700 800"
+                viewBox={fit.phone ? `0 0 ${7 * fit.cellWidth + 6} ${8 * (fit.cellHeight + 1) + 1}` : '0 0 700 800'}
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
                 <polyline
                   points={selected
                     .map(
-                      (t) => `${t.column * 100 + 50},${(yOf(t) + 0.5) * 100}`,
+                      (t) => fit.phone
+                        ? `${t.column * (fit.cellWidth + 1) + fit.cellWidth / 2},${yOf(t) * (fit.cellHeight + 1) + 1 + fit.cellHeight / 2}`
+                        : `${t.column * 100 + 50},${(yOf(t) + 0.5) * 100}`,
                     )
                     .join(' ')}
                   fill="none"
                   stroke="#ffe9a3"
-                  strokeWidth="5"
+                  strokeWidth={fit.phone ? 3 : 5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -883,6 +966,9 @@ export default function Home() {
               ))}
             </div>
           </section>
+          <output className="phone-only phone-storage-note" aria-live={fit.phone ? "polite" : "off"}>
+            {saveWarning ? "Progress not saved · details in More" : ""}
+          </output>
           <aside className="right-panel">
             <section className="word-panel brass">
               <h2 className="ribbon">Current Word</h2>
@@ -893,8 +979,8 @@ export default function Home() {
               >
                 <span className="spelling-text">{word || '—'}</span>
               </div>
-              <p className={valid ? 'valid-note word-points' : ''}>
-                {!service ? (
+              <p ref={phoneFeedbackRef} className={valid ? 'valid-note word-points' : ''} aria-live={fit.phone ? 'polite' : undefined}>
+                {fit.phone ? <span className="phone-feedback-text">{phoneFeedback}</span> : !service ? (
                   loadError ? (
                     'Dictionary unavailable. Reload to retry.'
                   ) : (
@@ -914,10 +1000,10 @@ export default function Home() {
               </p>
               <button
                 className="clear-word"
-                onClick={() => setPath([])}
+                onClick={() => { startSound(); setPath([]); }}
                 disabled={!playable || !path.length}
               >
-                <Undo2 size={19} /> Clear word
+                <Undo2 size={19} /> {fit.phone ? 'Clear' : 'Clear word'}
               </button>
             </section>
             <button
@@ -967,6 +1053,10 @@ export default function Home() {
                       ? `${hazards.count} burning ${hazards.count === 1 ? 'tile' : 'tiles'} · Watch the bottom`
                       : 'No burning tiles'}
               </p>
+              <output className="phone-only phone-fire" aria-label={`Fire danger: ${hazards.bottom.length ? 'bottom fire must be cleared' : `${hazards.count} burning tiles`}`}>
+                <Flame size={15} aria-hidden="true" />
+                {hazards.bottom.length ? 'Bottom fire!' : `${hazards.count} burning`}
+              </output>
             </section>
           </aside>
           <ScoreNote
@@ -1007,21 +1097,41 @@ export default function Home() {
             clear
           </span>
         </footer>
+        {fit.blocked && <div className="phone-space-message brass">
+          <strong><output>{fit.landscape ? 'Turn your phone upright to continue' : 'A little more room, please'}</output></strong>
+          <p>{fit.landscape ? 'Your game and word are safe.' : 'Hide browser controls or reduce browser zoom to fit the whole board.'}</p>
+          <button ref={moreRef} className="action teal brass" onClick={() => setMoreOpen(true)}>More</button>
+        </div>}
       </div>
+      <Dialog open={moreOpen} onOpenChange={(open) => open ? setMoreOpen(true) : closeMore()}>
+        <DialogContent className="phone-menu phone-dialog brass" finalFocus={fit.phone ? moreRef : gearRef}>
+          <DialogTitle>Alphabet Soup</DialogTitle>
+          <DialogDescription>Your game is paused. Your word stays selected.</DialogDescription>
+          <p>Best: {best ? best.toLocaleString() : 'None yet'} · Turn {state.turnNumber}</p>
+          {saveWarning && <output>{saveWarning}</output>}
+          <button className="action teal brass" onClick={() => openFromMore(setSettingsOpen)}>Settings</button>
+          <button className="action teal brass" onClick={() => openFromMore(setHelpOpen)}>How to Play & Scoring</button>
+          <button className="action teal brass" onClick={() => openFromMore(setScoresOpen)}>Top Of The Pot</button>
+          <button className="action brass" onClick={() => openFromMore(setRestartOpen)}>New Game</button>
+          <button className="action teal brass" onClick={closeMore}>Resume game</button>
+        </DialogContent>
+      </Dialog>
       <ScoreLeaderboard
+        phone={fit.phone}
+        returnFocusRef={fit.phone ? moreRef : scoreNoteRef}
         scores={highScores}
         open={scoresOpen}
         saved={scoresSaved}
         onOpenChange={(open) => {
           setScoresOpen(open);
-          if (!open) requestAnimationFrame(() => scoreNoteRef.current?.focus());
+          if (!open) { startSound(); focusControl(scoreNoteRef); }
         }}
       />
       <Dialog
         open={settingsOpen}
         onOpenChange={(v) => (v ? setSettingsOpen(true) : closeSettings())}
       >
-        <DialogContent className="settings-dialog brass">
+        <DialogContent className={`settings-dialog brass ${fit.phone ? 'phone-dialog' : ''}`} finalFocus={fit.phone ? moreRef : gearRef}>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
             Your game is paused. Thinking time never costs a turn.
@@ -1105,10 +1215,10 @@ export default function Home() {
         open={helpOpen}
         onOpenChange={(open) => {
           setHelpOpen(open);
-          if (!open) requestAnimationFrame(() => helpRef.current?.focus());
+          if (!open) { startSound(); focusControl(helpRef); }
         }}
       >
-        <DialogContent className="settings-dialog brass">
+        <DialogContent className={`settings-dialog brass ${fit.phone ? 'phone-dialog' : ''}`} finalFocus={fit.phone ? moreRef : helpRef}>
           <DialogTitle>How to Play & Scoring</DialogTitle>
           <DialogDescription>
             Your game is paused. Take your time learning the recipe.
@@ -1197,15 +1307,19 @@ export default function Home() {
             className="action teal brass"
             onClick={() => {
               setHelpOpen(false);
-              requestAnimationFrame(() => helpRef.current?.focus());
+              startSound();
+              focusControl(helpRef);
             }}
           >
             Resume game
           </button>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
-        <AlertDialogContent className="restart-dialog brass">
+      <AlertDialog open={restartOpen} onOpenChange={(open) => {
+        setRestartOpen(open);
+        if (!open && fit.phone) { startSound(); focusControl(moreRef); }
+      }}>
+        <AlertDialogContent className={`restart-dialog brass ${fit.phone ? 'phone-dialog' : ''}`} finalFocus={fit.phone ? moreRef : undefined}>
           <AlertDialogTitle>Start a fresh pot?</AlertDialogTitle>
           <AlertDialogDescription>
             Start over from zero? Your current score of {state.score.toLocaleString()}

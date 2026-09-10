@@ -6,6 +6,14 @@ A desktop-first, responsive, turn-based word game built from the supplied build 
 
 Use `pnpm install`, then `pnpm dev`. `pnpm build` exports the static game. `node --test tests/engine.test.js` runs the independent game-rule tests.
 
+The local preview listens on all network interfaces on port 3000. Other devices
+on the same network can open `http://192.168.1.103:3000/` while this computer keeps
+the preview running (update the address if its LAN IP changes). Localhost still
+works on this computer. LAN HTTP supports play and sound, but browsers disable
+Web Locks there, so runs use memory-only play with the existing save warning.
+Reloading this preview can lose the run; normal HTTPS hosting retains automatic
+save and resume. This does not expose any additional ports or publish the game.
+
 ## Architecture
 
 - `lib/game/engine.js`: seeded randomness, board geometry, trie dictionary, scoring, turn phases, gravity, fire, rewards, bonus words, and scramble.
@@ -33,4 +41,24 @@ Developer fixture: in local development, open `/?fixture=mockup` for the exact r
 
 ## Verification
 
-44 independent tests pass, including 100 simulated accepted moves, fixed board capacities, adjacency, invalid-action immutability, downward compaction, reward damage, response turns, stacked fire, new-fire delay, scramble, scoring, bonus progression, six leaderboard persistence/ranking/date tests, and feedback timing, event routing, and audio mute/reset tests. Run `pnpm test` for the complete suite. Earlier browser checks and delivery details are recorded in `VERIFICATION.md`.
+### Phone play
+
+Touch-capable screens below 600 CSS pixels use a phone layout: score and level,
+bonus/fire information, the complete current word above all 52 tiles, and Clear,
+Submit, and Scramble below. More opens a paused bottom sheet for settings, help,
+high scores, turn information, and New Game. Existing desktop and normal tablet
+layouts retain their original sizing.
+
+Phone tiles target 44–52px height, with a 40px minimum in short browser windows;
+action buttons stay at least 44px tall. Portrait is primary. Landscape below
+1000px wide and 500px tall uses a board-and-controls arrangement when it fits;
+otherwise an upright-phone prompt preserves the game and selection. Browser
+zoom remains enabled. Sound resumes on the next interaction after suspension
+or Safari interruption, retaining the existing volume and mute preferences.
+
+Supported sizing targets start at 360px-wide Android phones and second/third
+generation iPhone SE or larger. Real-device Safari/Chrome audio, browser chrome,
+and lock-screen interruption checks remain part of release acceptance; see the
+latest entry in `VERIFICATION.md`.
+
+51 independent tests pass, including 100 simulated accepted moves, fixed board capacities, adjacency, invalid-action immutability, downward compaction, reward damage, response turns, stacked fire, new-fire delay, scramble, scoring, bonus progression, leaderboard persistence, phone sizing, pointer ownership/cancellation, and audio interruption/mute/reset behavior. Run `pnpm test` for the complete suite. Browser checks and delivery details are recorded in `VERIFICATION.md`.

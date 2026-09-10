@@ -34,10 +34,10 @@ export function ScoreNote({ scores, open, onOpen, noteRef, disabled }) {
   );
 }
 
-export function ScoreLeaderboard({ scores, open, onOpenChange, saved }) {
+export function ScoreLeaderboard({ scores, open, onOpenChange, saved, phone, returnFocusRef }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="pot-dialog">
+      <DialogContent className={`pot-dialog ${phone ? 'phone-dialog' : ''}`} finalFocus={returnFocusRef}>
         <DialogTitle>Top Of The Pot</DialogTitle>
         <DialogDescription>
           Your five best pots, saved in this browser.
