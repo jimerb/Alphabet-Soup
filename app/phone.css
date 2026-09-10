@@ -227,13 +227,23 @@
 }
 .phone-menu[data-slot='dialog-content'] {
   top: auto;
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
   bottom: max(8px, env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
+  margin-inline: auto;
+  transform: none;
   translate: none;
-  width: 440px;
+  /* Explicit edges avoid centering transforms competing with popup animations. */
+  animation: none;
+  transition: none;
+  width: auto;
+  max-width: 440px !important;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   background: #103c33;
 }
+.phone-menu > * { flex-shrink: 0; }
 .phone-menu .action { min-height: 44px; font-size: 18px; }
 .phone-dialog [data-slot='dialog-close'] { min-width: 44px; min-height: 44px; }
 .phone-dialog .toggle,

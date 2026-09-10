@@ -2,6 +2,8 @@
 
 ## LAN preview follow-up
 
+- More-sheet clipping fix: replaced transform-based centering with explicit safe-area side insets and auto margins, disabled menu position/zoom animations, and prevented buttons from shrinking in scrollable content. Browser checks at 360x500, 390x550, 430x820, and 844x390 confirm horizontal centering, at least 8px viewport margins, 44px buttons, reachable Resume, and successful closing. Physical Safari confirmation remains pending. This follow-up is local until approved for publishing.
+
 - Phone feedback follow-up: save notices now occupy a fixed 14px row beneath the play buttons. The current word explicitly reads `✓ Valid word · 360 points` for SOUP, independently of save status. More explains the HTTP preview limitation and that first-time visits are not the cause. Desktop notices and save protections are preserved.
 - Rechecked all 20 phone viewport combinations with a live save warning: all 52 tiles and the notice fit without page scrolling, with a 40px minimum tile height. Clear, partial-word feedback, valid-word feedback, More/resume, rotation, and SOUP submission passed with no page errors; selection feedback did not move the board. Desktop excluded the new notice row. All 51 automated tests pass.
 
