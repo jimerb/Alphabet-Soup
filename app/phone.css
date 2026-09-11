@@ -149,6 +149,8 @@
   white-space: nowrap;
   background: #092e29;
   border-radius: 0 0 6px 6px;
+  /* Lift feedback within its reserved row so the board has breathing room. */
+  transform: translateY(-3px);
 }
 .phone-stage .board {
   grid-row: 4;

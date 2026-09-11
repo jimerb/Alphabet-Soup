@@ -2,6 +2,8 @@
 
 ## Production More-sheet correction - 2026-09-11
 
+- Phone spacing tweak: lifted the current-word feedback line 3px inside its existing reserved row. This creates a visible gap before the first tile while preserving tile sizes, board geometry, controls, and the desktop/tablet layout.
+
 - Reproduced the published clipping in a fresh browser: at 390x550 the menu started at x=-179, y=-151.77. Production CSS folded the translation reset into transform, exposing the dialog utility's independent -50% translation.
 - Added an opt-out from default centering classes to the shared dialog component and applied it only to More. Other dialogs retain their default positioning. The sheet no longer depends on overriding those utilities.
 - Built with NEXT_PUBLIC_BASE_PATH=/Alphabet-Soup and tested the exported page, not the development server. More starts at x=8, y=79.48 at 390x550. Bounds checks passed at 360x500, 375x550, 390x550, 412x700, 430x820, and 844x390, including scrolling to Resume and closing. Build exited 0 and all 51 tests passed.
