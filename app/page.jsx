@@ -214,13 +214,25 @@ export default function Home() {
     const text = spelling.firstElementChild;
     const fitWord = () => {
       const style = getComputedStyle(spelling);
+      const textStyle = getComputedStyle(text);
       const baseSize = parseFloat(style.fontSize);
       const availableWidth = spelling.clientWidth
         - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2;
       if (availableWidth <= 0) return;
-      // Measure the complete unwrapped text, independent of clipping and stage scale.
+      // Measure a detached copy. Safari can report a clipped inline max-content
+      // width when the original lives inside this phone grid row.
       text.style.fontSize = `${baseSize}px`;
-      const naturalWidth = text.offsetWidth;
+      const measure = document.createElement('span');
+      measure.textContent = text.textContent;
+      measure.style.cssText = [
+        'position:fixed', 'left:-10000px', 'top:0', 'visibility:hidden',
+        'display:inline-block', 'width:auto', 'max-width:none',
+        'white-space:nowrap', `font:${textStyle.font}`,
+        `letter-spacing:${textStyle.letterSpacing}`,
+      ].join(';');
+      document.body.appendChild(measure);
+      const naturalWidth = measure.getBoundingClientRect().width;
+      measure.remove();
       text.style.fontSize = `${baseSize * Math.min(1, availableWidth / Math.max(1, naturalWidth))}px`;
     };
     fitWord();
