@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import SoupSteam from './soup-steam';
+import PhoneCelebration from './phone-celebration';
 import AnimatedScore from './animated-score';
 import { SoundKitchen } from '@/lib/game/sound-kitchen';
 import { tileFalls, phaseSound } from '@/lib/game/feedback';
@@ -137,6 +138,18 @@ export default function Home() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [fit, setFit] = useState({ width: 1170, scale: 1, compact: false });
+  const [phoneCelebration, setPhoneCelebration] = useState(null);
+  const phoneActive = useRef(false);
+  useEffect(() => {
+    if (!fit.phone) return;
+    const image = new Image();
+    image.src = `${basePath}/assets/can-7.png`;
+  }, [fit.phone]);
+  useEffect(() => {
+    if (!phoneCelebration) return;
+    const timer = setTimeout(() => setPhoneCelebration(null), 4000);
+    return () => clearTimeout(timer);
+  }, [phoneCelebration]);
   const [restartOpen, setRestartOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState('PLAYER_INPUT');
@@ -229,6 +242,8 @@ export default function Home() {
       const width = viewport.clientWidth;
       const height = viewport.clientHeight;
       const phone = phoneMode(width, height, touch.matches);
+      phoneActive.current = phone;
+      if (!phone) setPhoneCelebration(null);
       viewport.dataset.phone = String(phone);
       const safe = getComputedStyle(viewport);
       const safeWidth = width - parseFloat(safe.paddingLeft) - parseFloat(safe.paddingRight);
@@ -407,6 +422,7 @@ export default function Home() {
     );
   }, [settings.music, settings.musicMute, settingsOpen, helpOpen, restartOpen, scoresOpen, moreOpen, fit.blocked]);
   function restoreGame(game) {
+    setPhoneCelebration(null);
     checkpoint.current = game;
     runId.current = game.id;
     setRestoreEpoch(n => n + 1);
@@ -509,6 +525,10 @@ export default function Home() {
       setActive(frame.active);
       setMessage(PHASE_TEXT[frame.phase]);
       const sound = phaseSound(frame, result, state.level);
+      if (sound === 'level-up' && phoneActive.current && result.state.status !== 'game-over') {
+        setPhoneCelebration({ level: result.state.level, turn: result.state.turnNumber });
+      }
+      if (frame.phase === 'GAME_OVER') setPhoneCelebration(null);
       if (sound) chime(sound);
       if (frame.phase === 'REFILL') {
         frame.active.forEach((id, index) => audio.current?.plop(
@@ -559,6 +579,7 @@ export default function Home() {
   }
   async function reset() {
     if (locked.current || !gameLoaded) return;
+    setPhoneCelebration(null);
     locked.current = true;
     setBusy(true);
     audio.current?.stopHorn();
@@ -1066,6 +1087,10 @@ export default function Home() {
             disabled={busy}
             onOpen={() => setScoresOpen(true)}
           />
+          {fit.phone && !fit.blocked && phoneCelebration && (
+            <PhoneCelebration key={phoneCelebration.turn} level={phoneCelebration.level}
+              basePath={basePath} height={fit.height} />
+          )}
         </div>
         <div
           className={`game-message ${hazards.bottom.length ? 'warning-message' : ''}`}

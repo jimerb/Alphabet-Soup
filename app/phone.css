@@ -20,6 +20,7 @@
   align-content: center;
 }
 .game-stage.phone-stage .game-layout {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-rows: 44px 18px 42px calc(8 * (var(--cellh) + 1px) + 1px) 44px 14px;
@@ -151,6 +152,72 @@
   border-radius: 0 0 6px 6px;
   /* Lift feedback within its reserved row so the board has breathing room. */
   transform: translateY(-3px);
+}
+
+/* A temporary guest above the board; never participates in layout or touch input. */
+.phone-stage .phone-celebration {
+  position: absolute;
+  z-index: 12;
+  top: 107px;
+  left: 50%;
+  width: 180px;
+  max-width: 100%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: phone-congratulations 4s linear both;
+}
+.phone-stage .phone-celebration-art {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  filter: drop-shadow(0 5px 3px #0009);
+  animation: phone-can-rock 1s ease-in-out 0.5s 3;
+  transform-origin: 50% 85%;
+}
+.phone-stage .phone-celebration-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.phone-stage .phone-celebration-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+  padding: 4px 12px;
+  border: 1px solid #ffe8a4;
+  border-radius: 12px;
+  background: #173e32;
+  color: #fff3ca;
+  font-size: 16px;
+  line-height: 1.2;
+  box-shadow: 0 3px 8px #0008;
+}
+.phone-stage .phone-celebration-caption strong { font-size: 20px; }
+.phone-stage.phone-landscape .phone-celebration {
+  left: calc((100% + 7 * var(--tile) + 14px) / 2);
+  top: 50%;
+  /* Center independently of the entrance animation's horizontal transform. */
+  translate: 0 -50%;
+}
+@keyframes phone-congratulations {
+  0% { opacity: 0; transform: translate(-50%, 12px) scale(0.85); }
+  12.5%, 87.5% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes phone-can-rock {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-6deg); }
+  75% { transform: rotate(6deg); }
+}
+.reduced-motion .phone-celebration,
+.reduced-motion .phone-celebration-art { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .phone-stage .phone-celebration,
+  .phone-stage .phone-celebration-art { animation: none; }
 }
 .phone-stage .board {
   grid-row: 4;
