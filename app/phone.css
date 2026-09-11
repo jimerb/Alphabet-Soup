@@ -139,7 +139,7 @@
   background: #092e29;
   border-radius: 6px 6px 0 0;
 }
-.phone-stage .spelling-text { display: block; line-height: 27px; }
+.phone-stage .spelling-text { display: block; flex-shrink: 0; line-height: 27px; }
 .phone-stage .word-panel > p,
 .phone-stage .word-panel > p.word-points {
   grid-row: 3;

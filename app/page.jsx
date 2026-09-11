@@ -231,7 +231,7 @@ export default function Home() {
       observer.disconnect();
       document.fonts.removeEventListener('loadingdone', fitWord);
     };
-  }, [word]);
+  }, [word, fit.phone]);
   useEffect(() => {
     const viewport = viewportRef.current;
     const stage = stageRef.current;
@@ -998,7 +998,8 @@ export default function Home() {
                 ref={spellingRef}
                 aria-live="polite"
               >
-                <span className="spelling-text">{word || '—'}</span>
+                {/* Replace phone text on selection changes so its fitted glyphs cannot retain an earlier word. */}
+                <span key={fit.phone ? word : undefined} className="spelling-text" translate="no">{word || '—'}</span>
               </div>
               <p ref={phoneFeedbackRef} className={valid ? 'valid-note word-points' : ''} aria-live={fit.phone ? 'polite' : undefined}>
                 {fit.phone ? <span key={`${word}:${phoneFeedback}`} className="phone-feedback-text">{phoneFeedback}</span> : !service ? (
