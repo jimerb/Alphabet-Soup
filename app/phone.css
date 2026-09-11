@@ -131,11 +131,15 @@
   align-self: start;
   height: 27px;
   padding: 0 4px;
-  font-size: 26px;
-  line-height: 1;
+  font-size: 24px;
+  line-height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #092e29;
   border-radius: 6px 6px 0 0;
 }
+.phone-stage .spelling-text { display: block; line-height: 27px; }
 .phone-stage .word-panel > p,
 .phone-stage .word-panel > p.word-points {
   grid-row: 3;
@@ -150,8 +154,8 @@
   white-space: nowrap;
   background: #092e29;
   border-radius: 0 0 6px 6px;
-  /* Lift feedback within its reserved row so the board has breathing room. */
-  transform: translateY(-3px);
+  /* Keep this text below the word so descenders remain visible. */
+  transform: none;
 }
 
 /* A temporary guest above the board; never participates in layout or touch input. */

@@ -128,7 +128,25 @@ test('new game replaces checkpoint while retaining earned score', async () => {
   assert.equal(saved.scores[0].id, 'run');
 });
 
-test('fatal boards with removed tiles restore; scramble state restores', async () => {
+test('older fatal saves settle on read without changing score, outcome or stored source', () => {
+  const env = environment();
+  const state = fixture();
+  state.status = 'game-over';
+  state.board = state.board.filter(t => t.column !== 3 || t.row % 2 === 0);
+  const legacy = { version: SAVE_VERSION, revision: 4, savedAt: new Date().toISOString(), scores: [], game: { ...game(), state, path: [] } };
+  const raw = JSON.stringify(legacy);
+  env.storage.setItem(SAVE_KEY, raw);
+  const saved = readSave(env.storage);
+  assert.equal(saved.damaged, false);
+  assert.equal(saved.game.state.board.length, 52);
+  assert.equal(saved.game.state.status, 'game-over');
+  assert.equal(saved.game.state.score, state.score);
+  assert.equal(saved.game.state.turnNumber, state.turnNumber);
+  assert.ok(validGame(saved.game.state));
+  assert.equal(env.storage.getItem(SAVE_KEY), raw);
+  assert.deepEqual(readSave(env.storage), saved, 'reopening fills the same letters');
+});
+test('settled fatal boards restore; scramble state restores', async () => {
   const env = environment(),
     client = env.client();
   client.load();
@@ -138,7 +156,7 @@ test('fatal boards with removed tiles restore; scramble state restores', async (
     .find((w) => w.word === 'TIN').path;
   const fatal = resolve(state, { type: 'word', path }, service).state;
   assert.equal(fatal.status, 'game-over');
-  assert.ok(fatal.board.length < 52);
+  assert.equal(fatal.board.length, 52);
   assert.ok(validGame(fatal));
   await client.save({ ...game(), state: fatal, path: [] });
   assert.deepEqual(readSave(env.storage).game.state, fatal);

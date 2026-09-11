@@ -159,6 +159,28 @@ test('new bottom red has response turn, invalid is free, surviving next move los
   assert.equal(r.state.status, 'game-over');
   assert.ok(r.state.score > oldScore);
 });
+test('fatal words settle and refill before game over without advancing fire or granting rewards', () => {
+  const s = newGame(42);
+  const red = tile(s, 0, 6);
+  red.isRed = true;
+  const before = structuredClone(s);
+  const r = resolve(s, { type: 'word', path: soup(s) }, dict);
+  assert.deepEqual(s, before);
+  assert.equal(r.state.status, 'game-over');
+  assert.deepEqual(r.frames.map(f => f.phase), ['SCORE_AND_REMOVE', 'GRAVITY', 'REFILL', 'GAME_OVER']);
+  assert.deepEqual(sizes(r.state), CAPACITIES);
+  for (let c = 0; c < CAPACITIES.length; c++) {
+    assert.deepEqual(col(r.state, c).map(t => t.row), Array.from({length: CAPACITIES[c]}, (_,i) => i));
+    const survivors = col(s, c).filter(t => !soup(s).includes(t.id)).map(t => t.id);
+    assert.deepEqual(col(r.state, c).filter(t => survivors.includes(t.id)).map(t => t.id), survivors);
+  }
+  assert.equal(tile(r.state, 0, 6).id, red.id);
+  assert.equal(tile(r.state, 0, 6).isRed, true);
+  assert.equal(r.state.score, s.score + r.points);
+  assert.equal(r.state.firePressure, s.firePressure);
+  assert.equal(r.frames.at(-1).board.length, 52);
+  assert.ok(resolve(r.state, {type: 'word', path: soup(s)}, dict).error);
+});
 test('using bottom red rescues it', () => {
   const s = newGame(7);
   for (let i = 4; i < 7; i++) tile(s, 0, i).letter = 'SEA'[i - 4];

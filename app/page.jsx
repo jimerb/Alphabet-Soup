@@ -1001,7 +1001,7 @@ export default function Home() {
                 <span className="spelling-text">{word || '—'}</span>
               </div>
               <p ref={phoneFeedbackRef} className={valid ? 'valid-note word-points' : ''} aria-live={fit.phone ? 'polite' : undefined}>
-                {fit.phone ? <span className="phone-feedback-text">{phoneFeedback}</span> : !service ? (
+                {fit.phone ? <span key={`${word}:${phoneFeedback}`} className="phone-feedback-text">{phoneFeedback}</span> : !service ? (
                   loadError ? (
                     'Dictionary unavailable. Reload to retry.'
                   ) : (
