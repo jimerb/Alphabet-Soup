@@ -1104,7 +1104,7 @@ export default function Home() {
         </div>}
       </div>
       <Dialog open={moreOpen} onOpenChange={(open) => open ? setMoreOpen(true) : closeMore()}>
-        <DialogContent className="phone-menu phone-dialog brass" finalFocus={fit.phone ? moreRef : gearRef}>
+        <DialogContent centered={false} className="phone-menu phone-dialog brass" finalFocus={fit.phone ? moreRef : gearRef}>
           <DialogTitle>Alphabet Soup</DialogTitle>
           <DialogDescription>Your game is paused. Your word stays selected.</DialogDescription>
           <p>Best: {best ? best.toLocaleString() : 'None yet'} · Turn {state.turnNumber}</p>

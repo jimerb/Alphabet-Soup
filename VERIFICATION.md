@@ -1,5 +1,11 @@
 # Phone compatibility verification - 2026-09-10
 
+## Production More-sheet correction - 2026-09-11
+
+- Reproduced the published clipping in a fresh browser: at 390x550 the menu started at x=-179, y=-151.77. Production CSS folded the translation reset into transform, exposing the dialog utility's independent -50% translation.
+- Added an opt-out from default centering classes to the shared dialog component and applied it only to More. Other dialogs retain their default positioning. The sheet no longer depends on overriding those utilities.
+- Built with NEXT_PUBLIC_BASE_PATH=/Alphabet-Soup and tested the exported page, not the development server. More starts at x=8, y=79.48 at 390x550. Bounds checks passed at 360x500, 375x550, 390x550, 412x700, 430x820, and 844x390, including scrolling to Resume and closing. Build exited 0 and all 51 tests passed.
+
 ## LAN preview follow-up
 
 - More-sheet clipping fix: replaced transform-based centering with explicit safe-area side insets and auto margins, disabled menu position/zoom animations, and prevented buttons from shrinking in scrollable content. Browser checks at 360x500, 390x550, 430x820, and 844x390 confirm horizontal centering, at least 8px viewport margins, 44px buttons, reachable Resume, and successful closing. Physical Safari confirmation remains pending. This follow-up is local until approved for publishing.
