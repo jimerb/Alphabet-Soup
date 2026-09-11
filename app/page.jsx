@@ -994,12 +994,13 @@ export default function Home() {
             <section className="word-panel brass">
               <h2 className="ribbon">Current Word</h2>
               <div
+                key={fit.phone ? word : undefined}
                 className="spelling"
                 ref={spellingRef}
                 aria-live="polite"
               >
-                {/* Replace phone text on selection changes so its fitted glyphs cannot retain an earlier word. */}
-                <span key={fit.phone ? word : undefined} className="spelling-text" translate="no">{word || '—'}</span>
+                {/* The phone replaces the whole word box, including its overflow clip, on selection changes. */}
+                <span className="spelling-text" translate="no">{word || '—'}</span>
               </div>
               <p ref={phoneFeedbackRef} className={valid ? 'valid-note word-points' : ''} aria-live={fit.phone ? 'polite' : undefined}>
                 {fit.phone ? <span key={`${word}:${phoneFeedback}`} className="phone-feedback-text">{phoneFeedback}</span> : !service ? (

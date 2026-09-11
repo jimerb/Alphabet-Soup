@@ -130,16 +130,24 @@
   grid-column: 1 / -1;
   align-self: start;
   height: 27px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  justify-self: stretch;
   padding: 0 4px;
   font-size: 24px;
   line-height: 27px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  text-align: center;
   background: #092e29;
   border-radius: 6px 6px 0 0;
 }
-.phone-stage .spelling-text { display: block; flex-shrink: 0; line-height: 27px; }
+.phone-stage .spelling-text {
+  display: inline-block;
+  width: max-content;
+  line-height: 27px;
+  vertical-align: top;
+}
 .phone-stage .word-panel > p,
 .phone-stage .word-panel > p.word-points {
   grid-row: 3;
