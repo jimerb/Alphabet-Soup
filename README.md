@@ -47,6 +47,18 @@ in the same browser when saving is available. Reopen the game to continue.
 Settings include separate music and sound effects controls, reduced motion,
 and high contrast.
 
+## Add the game to your phone or tablet
+
+For one-tap access on iOS or Android, add the game to your Home Screen. In
+**Safari on iPhone or iPad**, open the game, tap **Share** → **More** → **Add to
+Home Screen**, then tap **Add**. You can turn on **Open as Web App** to make it
+open like an app. In **Chrome on Android**, open the game, tap **⋮** → **Install
+app** or **Add to Home screen**, then follow the prompts. The exact label can
+vary by browser and device. Windows browsers can bookmark the link normally.
+
+See Apple’s [iPhone/iPad Home Screen instructions](https://support.apple.com/guide/iphone/iph42ab2f3a7/ios)
+and Google’s [Chrome web-app instructions](https://support.google.com/chrome/answer/9658361).
+
 **No account, database, or persistent backend is required.** Progress and high
 scores stay on your device. They do not sync between browsers or phones, and
 clearing site data or ending a private-browsing session may erase them. If the

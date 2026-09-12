@@ -132,6 +132,15 @@ Settings offer independent music and effects volume/mute controls, reduced
 motion, and high contrast. Sound starts after an interaction. Reduced motion
 initially follows your system preference; your overrides stay in this browser.
 
+## Add the game to your phone or tablet
+
+For one-tap access on iOS or Android, add the game to your Home Screen. In
+**Safari on iPhone or iPad**, open the game, tap **Share** → **More** → **Add to
+Home Screen**, then tap **Add**. You can turn on **Open as Web App** to make it
+open like an app. In **Chrome on Android**, open the game, tap **⋮** → **Install
+app** or **Add to Home screen**, then follow the prompts. The exact label can
+vary by browser and device. Windows browsers can bookmark the link normally.
+
 No account or persistent backend is needed. Saves use browser **localStorage**,
 not cloud storage. Use the same browser, profile, and site address to continue.
 Clearing site data or ending private browsing may erase progress. A save

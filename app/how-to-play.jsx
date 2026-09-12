@@ -207,6 +207,25 @@ export default function HowToPlay() {
           not survive a reload.
         </p>
       </section>
+
+      <section className="help-card help-wide shortcut-card">
+        <h3>Quick access on a phone or tablet</h3>
+        <p>
+          Save the game to your Home Screen so it is one tap away. On{' '}
+          <strong>iPhone or iPad</strong>, open it in Safari, tap{' '}
+          <strong>Share</strong> → <strong>More</strong> →{' '}
+          <strong>Add to Home Screen</strong>, then tap <strong>Add</strong> (you
+          can turn on <strong>Open as Web App</strong>). On{' '}
+          <strong>Android</strong>, open it in Chrome, tap <strong>⋮</strong> →{' '}
+          <strong>Install app</strong> or <strong>Add to Home screen</strong>,
+          then follow the prompts.
+        </p>
+        <p className="help-note">
+          The wording can vary a little by browser and device. This shortcut tip
+          is for iOS and Android phones or tablets; Windows browsers can
+          bookmark the game normally.
+        </p>
+      </section>
     </div>
   );
 }
