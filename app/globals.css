@@ -1354,3 +1354,42 @@ footer {
   font: 14px/1.4 sans-serif;
   text-align: center;
 }
+/* Help is a roomy reference on desktop and a single-column guide on phones. */
+.settings-dialog.help-dialog { max-width: min(1000px, calc(100vw - 32px)) !important; }
+.help-guide { font-family: system-ui, sans-serif; font-weight: normal; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.help-card { min-width: 0; padding: 20px; border: 1px solid #ba95526b; border-radius: 12px; background: #082f2c99; }
+.help-wide { grid-column: 1 / -1; }
+.help-card h3 { font-family: Georgia, serif; margin: 0 0 12px; color: #ffdc91; font-size: 23px; }
+.help-card p { margin: 12px 0; }
+.help-card > :last-child { margin-bottom: 0; }
+.help-card ul { padding-left: 20px; list-style: disc; }
+.letter-values { display: grid; gap: 3px; margin-top: 18px; }
+.letter-values > div, .bonus-levels > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 10px; border-bottom: 1px solid #ba955233; }
+.letter-values > div:nth-child(odd) { background: #ffffff08; border-radius: 4px; }
+.letter-values dt { font-family: system-ui, sans-serif; font-weight: 700; letter-spacing: .14em; }
+.letter-values dd { white-space: nowrap; }
+.letter-values dd strong { color: #ffdc91; font-size: 20px; }
+.letter-values dd span, .help-note { font-size: 14px; color: #e4d5b9; }
+.reward-guide { display: grid; gap: 14px; margin: 20px 0; }
+.reward-row { display: flex; align-items: center; gap: 12px; }
+.reward-row > div { display: grid; gap: 2px; }
+.reward-row span:not(.help-swatch) { font-size: 14px; color: #e4d5b9; }
+.reward-stats { margin-left: auto; text-align: right; white-space: nowrap; }
+.help-swatch { display: grid; place-items: center; width: 42px; height: 48px; flex-shrink: 0; border: 2px solid #e0c583; border-radius: 8px; font-size: 26px; box-shadow: inset 0 0 8px #ffffff55; }
+.help-swatch.green { background: #297946; color: white; }
+.help-swatch.gold { background: #efb942; color: #3b2807; }
+.help-swatch.sapphire { background: #2464b3; color: white; }
+.help-swatch.diamond { background: #c7f0f3; color: #183d53; }
+.score-recipe { padding: 14px 18px; border-left: 4px solid #dfb962; background: #051f1b; border-radius: 4px; font-size: 21px; color: #ffdc91; font-weight: bold; }
+.help-example { padding: 14px 18px; background: #ffffff09; border-radius: 8px; line-height: 1.8; }
+.bonus-levels { margin: 14px 0; }
+@media (max-width: 700px) {
+  .help-guide { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .help-card { padding: 15px; }
+  .help-card h3 { font-size: 21px; }
+  .score-recipe { font-size: 18px; padding: 12px; }
+  .reward-row { gap: 8px; }
+  .help-swatch { width: 34px; height: 42px; }
+  .reward-row span:not(.help-swatch) { font-size: 12px; }
+  .reward-stats { font-size: 14px; }
+}

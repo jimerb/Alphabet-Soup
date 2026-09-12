@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import SoupSteam from './soup-steam';
+import HowToPlay from './how-to-play';
 import PhoneCelebration from './phone-celebration';
 import AnimatedScore from './animated-score';
 import { SoundKitchen } from '@/lib/game/sound-kitchen';
@@ -136,6 +137,7 @@ export default function Home() {
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const helpTitleRef = useRef(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [fit, setFit] = useState({ width: 1170, scale: 1, compact: false });
   const [phoneCelebration, setPhoneCelebration] = useState(null);
@@ -1257,91 +1259,12 @@ export default function Home() {
           if (!open) { startSound(); focusControl(helpRef); }
         }}
       >
-        <DialogContent className={`settings-dialog brass ${fit.phone ? 'phone-dialog' : ''}`} finalFocus={fit.phone ? moreRef : helpRef}>
-          <DialogTitle>How to Play & Scoring</DialogTitle>
+        <DialogContent className={`settings-dialog help-dialog brass ${fit.phone ? 'phone-dialog' : ''}`} initialFocus={helpTitleRef} finalFocus={fit.phone ? moreRef : helpRef}>
+          <DialogTitle ref={helpTitleRef} tabIndex={-1}>How to Play & Scoring</DialogTitle>
           <DialogDescription>
             Your game is paused. Take your time learning the recipe.
           </DialogDescription>
-          <section className="how-to">
-            <h3>How to make a delicious word</h3>
-            <ol>
-              <li>
-                Click or drag through at least three neighboring letters. A tile
-                connects above, below, and to the two nearest tiles on either
-                side. Q and U are separate.
-              </li>
-              <li>
-                Press Submit or Enter. Letters disappear, survivors fall
-                straight down, and new letters fill from above.
-              </li>
-              <li>
-                A burning tile eats the tile directly below it each turn. Clear
-                it in a word before it burns through the bottom.
-              </li>
-              <li>
-                A fire that reaches the bottom gets one rescue move. Your next
-                valid word must remove every bottom fire.
-              </li>
-            </ol>
-            <div className="fire-example">
-              <strong>Fire consumes; it never pushes.</strong>
-              <code>
-                A <b>R</b> C D E F G
-              </code>
-              <span>↓ R burns C, then falls</span>
-              <code>
-                X A <b>R</b> D E F G
-              </code>
-              <small>R is the red tile. G stays at the bottom.</small>
-            </div>
-            <p>
-              <strong>Longer words cool the soup.</strong> Five, six, seven, and
-              eight-or-more-letter words earn Green, Gold, Sapphire, and Diamond
-              tiles. They add +2, +4, +7, and +10 effective letters to scoring
-              and resist 2, 3, 4, and 5 fire hits.
-            </p>
-            <p>
-              <strong>Score:</strong> 10 × effective length × (letter-value sum
-              + level). Every 10,000 points advances a level. Exact bonus words
-              unlock at Level 2. Each new target has 4 letters at levels 2–3, 5
-              at levels 4–5, 6 at levels 6–7, and 7 from level 8 onward. Your
-              current target stays until you complete it.
-            </p>
-            <p>
-              <strong>Build toward the bonus.</strong> A new target cannot be
-              connected on the board when it is assigned. Clear other words to
-              drop letters into place and bring in fresh tiles. Completing the
-              exact target adds the displayed bonus on top of your word score.
-              Bonuses start at 1,000 points and grow by 1,000 per completion, up
-              to 10,000.
-            </p>
-            <p>
-              <strong>Letter values:</strong> A E I O S = 1; L N R T U = 2; D G
-              = 3; B C M P = 4; F H V = 5; W Y = 6; K Q = 7; J X = 8; Z = 10.
-              Reward bonuses stack in the effective length.
-            </p>
-            <p>
-              <strong>Controls:</strong> Click or drag to select. Click the last
-              tile to undo it, or Clear to start over. Use arrow keys to
-              navigate, Space to select, Enter to submit, and Escape to clear.
-            </p>
-            <p>
-              <strong>Scramble costs a turn.</strong> Letters shuffle, rewards
-              stay, and existing fire advances. It cannot rescue a bottom fire.
-            </p>
-            <p>
-              Words may be played again. Ordinary inflections are accepted;
-              proper names, abbreviations, and punctuation-based spellings are
-              excluded.{' '}
-              <a
-                href="/DICTIONARY-LICENSE.txt"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Dictionary license
-              </a>
-            </p>
-          </section>
+          <HowToPlay />
           <button
             className="action teal brass"
             onClick={() => {

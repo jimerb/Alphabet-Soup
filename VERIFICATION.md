@@ -1,3 +1,13 @@
+# Help & documentation — 2026-09-12
+
+- Reorganized help into responsive sections with engine-derived letter values and colored reward boosts, scoring examples, fire/rescue rules, bonuses, controls, and browser-local save guidance. Help opens focused on its title so it starts at the top.
+- README now leads with actual desktop and phone-viewport gameplay screenshots with SOUP selected, a quick start, a linked complete playing guide, and an explicit static-hosting/localStorage explanation. Phone screenshot is Chromium touch emulation, not a photograph of a physical device.
+- Chromium checks at 1440×900, 390×844, and 360×640: nine letter-value groups and all four rewards present; two desktop columns and one phone column; no horizontal dialog overflow; scroll to Resume works; closing preserves SOUP; no page errors. Screenshots visually reviewed.
+- All 53 existing automated tests pass. Final production static build completed with exit code 0. New help component passes targeted lint. Relative documentation links and screenshot paths verified. No game rules, save schema, dependencies, or hosting configuration changed.
+- No commit, push, or deployment performed.
+
+---
+
 # Phone compatibility verification - 2026-09-10
 
 ## Production More-sheet correction - 2026-09-11
